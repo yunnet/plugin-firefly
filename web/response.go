@@ -3,20 +3,20 @@ package web
 import "encoding/json"
 
 type Response struct {
-	Code int			`json:"code"`
-	Msg string          `json:"msg"`
-	Data interface{}    `json:"data"`
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
 }
 
-func (c *Response)WithMsg(message string) Response {
+func (c *Response) WithMsg(message string) Response {
 	return Response{c.Code, message, c.Data}
 }
 
-func (c *Response)WithData(data interface{}) Response {
+func (c *Response) WithData(data interface{}) Response {
 	return Response{c.Code, c.Msg, data}
 }
 
-func (c *Response) ToRaw() []byte {
+func (c *Response) Raw() []byte {
 	s := &struct {
 		Code int         `json:"code"`
 		Msg  string      `json:"msg"`
@@ -30,12 +30,10 @@ func (c *Response) ToRaw() []byte {
 	return raw
 }
 
-func (c *Response) ToString() string {
-	return string(c.ToRaw())
+func (c *Response) String() string {
+	return string(c.Raw())
 }
 
 func response(code int, message string) *Response {
 	return &Response{code, message, nil}
 }
-
-
