@@ -1,15 +1,18 @@
 package firefly
 
 import (
+	"bufio"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	ni "github.com/yunnet/plugin-firefly/network"
 	result "github.com/yunnet/plugin-firefly/web"
+	"io"
+	"strings"
 
 	"io/ioutil"
 	"net/http"
@@ -24,6 +27,7 @@ var config struct {
 }
 
 const C_JSON_FILE = "firefly.json"
+const C_NETWORK_HEAD = "iface eth0"
 const C_NETWORK_FILE = "/etc/network/interfaces"
 
 const C_SALT = "firefly"
@@ -42,10 +46,135 @@ func run() {
 	http.HandleFunc("/api/firefly/login", getLoginHandler)
 
 	http.HandleFunc("/api/firefly/config/tcp", getConfigTcpHandler)
+	http.HandleFunc("/api/firefly/config/tcp/edit", editConfigTcpHandler)
 
 	http.HandleFunc("/api/firefly/config", getConfigHandler)
 	http.HandleFunc("/api/firefly/config/edit", editConfigHandler)
 
+}
+
+func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+	if err := r.ParseForm(); err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	params, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+	rootJson := gjson.Parse(string(params))
+	address := rootJson.Get("address").Str
+	netmask := rootJson.Get("netmask").Str
+	gateway := rootJson.Get("gateway").Str
+	nameservers := rootJson.Get("dns-nameservers").Str
+
+	fileName := config.Path + C_NETWORK_FILE
+
+	in, err := os.Open(fileName)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+	defer in.Close()
+
+	//flag := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
+	flag := os.O_RDWR | os.O_CREATE
+	out, err := os.OpenFile(fileName, flag, 0755)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+	defer out.Close()
+
+	buf := bufio.NewReader(in)
+	ready := false
+	for {
+		bytes, _, err := buf.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			res := result.Err.WithMsg(err.Error())
+			w.Write(res.Raw())
+			return
+		}
+
+		line := string(bytes)
+		if strings.HasPrefix(strings.TrimSpace(line), "#") {
+			_, err = out.WriteString(line + "\n")
+			if err != nil {
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
+				return
+			}
+			continue
+		}
+
+		// Continue if line is empty
+		if len(strings.TrimSpace(line)) == 0 {
+			if ready {
+				ready = false
+			}
+
+			_, err = out.WriteString(line + "\n")
+			if err != nil {
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
+				return
+			}
+			continue
+		}
+
+		if strings.Contains(line, C_NETWORK_HEAD) {
+			ready = true
+			_, err = out.WriteString(line + "\n")
+			if err != nil {
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
+				return
+			}
+			continue
+		}
+
+		var newLine string
+		if ready {
+			sline := strings.Split(strings.TrimSpace(line), " ")
+			switch sline[0] {
+			case "address":
+				newLine = strings.Replace(line, sline[1], address, -1)
+			case "netmask":
+				newLine = strings.Replace(line, sline[1], netmask, -1)
+			case "gateway":
+				newLine = strings.Replace(line, sline[1], gateway, -1)
+			case "dns-nameservers":
+				newLine = strings.Replace(line, sline[1], nameservers, -1)
+			default:
+			}
+			_, err = out.WriteString(newLine + "\n")
+			if err != nil {
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
+				return
+			}
+		} else {
+			_, err = out.WriteString(line + "\n")
+			if err != nil {
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
+				return
+			}
+		}
+	}
+
+	res := result.OK.WithMsg("修改成功")
+	w.Write(res.Raw())
 }
 
 func getLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -172,19 +301,58 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	ni := ni.Parse()
-	ni.InterfacesReader.ParseInterfaces()
-
-	fmt.Println(ni)
-
-	content, err := readFile(C_NETWORK_FILE)
-	if nil != err {
-		res := result.Err.WithMsg(err.Error())
-		w.Write(res.Raw())
-		return
-	}
-	res := result.OK.WithData(content)
+	file := config.Path + C_NETWORK_FILE
+	content := readInterfaces(file)
+	rootJson := gjson.Parse(content)
+	res := result.OK.WithData(rootJson.Value())
 	w.Write(res.Raw())
+}
+
+func readInterfaces(filePath string) string {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	ready := false
+
+	var ipAddr = make(map[string]interface{}, 4)
+	for s.Scan() {
+		line := s.Text()
+		if strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		// Continue if line is empty
+		if len(strings.TrimSpace(line)) == 0 {
+			if ready {
+				break
+			}
+			continue
+		}
+
+		if strings.Contains(line, C_NETWORK_HEAD) {
+			ready = true
+		}
+
+		if ready {
+			sline := strings.Split(strings.TrimSpace(line), " ")
+			switch sline[0] {
+			case "address":
+				ipAddr["address"] = sline[1]
+			case "netmask":
+				ipAddr["netmask"] = sline[1]
+			case "gateway":
+				ipAddr["gateway"] = sline[1]
+			case "dns-nameservers":
+				ipAddr["dns-nameservers"] = sline[1]
+			default:
+			}
+		}
+	}
+	rootJson, _ := json.Marshal(ipAddr)
+	return string(rootJson)
 }
 
 func settingIpAddr(content string) error {
