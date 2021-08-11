@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -42,15 +43,38 @@ func init() {
 
 func run() {
 	os.MkdirAll(config.Path, 0755)
+	//重启机器
+	http.HandleFunc("/api/firefly/reboot", rebootHandler)
 
+	//登陆
 	http.HandleFunc("/api/firefly/login", getLoginHandler)
 
+	//网络查询
 	http.HandleFunc("/api/firefly/config/tcp", getConfigTcpHandler)
+	//网络设置
 	http.HandleFunc("/api/firefly/config/tcp/edit", editConfigTcpHandler)
 
+
+	//JSON配置查询
 	http.HandleFunc("/api/firefly/config", getConfigHandler)
+	//JSON配置编辑
 	http.HandleFunc("/api/firefly/config/edit", editConfigHandler)
 
+}
+
+func rebootHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+
+	cmd := exec.Command("reboot")
+	console, err := cmd.Output()
+	if err != nil{
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	res := result.OK.WithData(console)
+	w.Write(res.Raw())
 }
 
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +97,7 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	gateway := rootJson.Get("gateway").Str
 	nameservers := rootJson.Get("dns-nameservers").Str
 
-	fileName := config.Path + C_NETWORK_FILE
+	fileName := C_NETWORK_FILE
 
 	in, err := os.Open(fileName)
 	if err != nil {
@@ -301,17 +325,24 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	file := config.Path + C_NETWORK_FILE
-	content := readInterfaces(file)
+	file := C_NETWORK_FILE
+	fmt.Println("read file:" + file)
+
+	content, err := readInterfaces(file)
+	if err != nil{
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
 	rootJson := gjson.Parse(content)
 	res := result.OK.WithData(rootJson.Value())
 	w.Write(res.Raw())
 }
 
-func readInterfaces(filePath string) string {
+func readInterfaces(filePath string) (string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	defer f.Close()
 
@@ -352,10 +383,5 @@ func readInterfaces(filePath string) string {
 		}
 	}
 	rootJson, _ := json.Marshal(ipAddr)
-	return string(rootJson)
-}
-
-func settingIpAddr(content string) error {
-	fmt.Println("recv ip addr：" + content)
-	return nil
+	return string(rootJson), nil
 }
