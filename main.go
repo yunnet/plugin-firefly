@@ -5,20 +5,21 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
+	"github.com/go-ping/ping"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/yunnet/plugin-firefly/jwt"
 	result "github.com/yunnet/plugin-firefly/web"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -45,6 +46,7 @@ func init() {
 
 func run() {
 	os.MkdirAll(config.Path, 0755)
+
 	//重启机器
 	http.HandleFunc("/api/firefly/reboot", rebootHandler)
 
@@ -60,13 +62,47 @@ func run() {
 	http.HandleFunc("/api/firefly/config/tcp", getConfigTcpHandler)
 	//网络设置
 	http.HandleFunc("/api/firefly/config/tcp/edit", editConfigTcpHandler)
-
-	//http.HandleFunc("/api/firefly/config/ping", pingConfigTcpHandler)
+	//网络ping
+	http.HandleFunc("/api/firefly/config/ping", pingConfigTcpHandler)
 }
 
-//func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
-//
-//}
+func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+	ipAddr := r.URL.Query().Get("ipaddr")
+	if ipAddr == "" {
+		res := result.Err.WithMsg("ipv4地址不能为空")
+		w.Write(res.Raw())
+		return
+	}
+	isOk, err := Accessible(ipAddr)
+	if isOk {
+		res := result.OK.WithMsg("成功")
+		w.Write(res.Raw())
+	} else {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+	}
+}
+
+func Accessible(ipAddr string) (bool, error) {
+	pinger, err := ping.NewPinger(ipAddr)
+	if err != nil {
+		return false, err
+	}
+	pinger.Count = 5
+	pinger.SetPrivileged(true)
+
+	if err := pinger.Run(); err != nil {
+		return false, err
+	}
+
+	stats := pinger.Statistics()
+	if stats.PacketsRecv >= 1 {
+		return true, nil
+	}
+
+	return false, errors.New("失败")
+}
 
 func checkLogin(w http.ResponseWriter, r *http.Request) bool {
 	tokenString := r.Header.Get("token")
@@ -242,8 +278,6 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	file := C_NETWORK_FILE
-	fmt.Println("read file:" + file)
-
 	content, err := readInterfaces(file)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
@@ -257,10 +291,10 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 
 func readInterfaces(filePath string) (string, error) {
 	f, err := os.Open(filePath)
+	defer f.Close()
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
 
 	s := bufio.NewScanner(f)
 	ready := false
@@ -302,6 +336,15 @@ func readInterfaces(filePath string) (string, error) {
 	return string(rootJson), nil
 }
 
+func CheckIp(ip string) bool {
+	addr := strings.Trim(ip, " ")
+	regStr := `^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.)(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`
+	if match, _ := regexp.MatchString(regStr, addr); match {
+		return true
+	}
+	return false
+}
+
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	isOk := checkLogin(w, r)
@@ -321,56 +364,59 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-	rootJson := gjson.Parse(string(params))
-	address := rootJson.Get("address").Str
-	netmask := rootJson.Get("netmask").Str
-	gateway := rootJson.Get("gateway").Str
-	nameservers := rootJson.Get("dns-nameservers").Str
 
-	fileName := C_NETWORK_FILE
-
-	in, err := os.Open(fileName)
+	err = updateInterfaces(string(params))
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
-		return
+	} else {
+		res := result.OK.WithMsg("修改成功")
+		w.Write(res.Raw())
 	}
+}
+
+func updateInterfaces(params string) error {
+	rootJson := gjson.Parse(params)
+
+	address := rootJson.Get("address").Str
+	if !CheckIp(address) {
+		return errors.New("ipv4地址格式不对")
+	}
+
+	netmask := rootJson.Get("netmask").Str
+	if !CheckIp(address) {
+		return errors.New("ipv4子网掩码格式不对")
+	}
+
+	gateway := rootJson.Get("gateway").Str
+	if !CheckIp(address) {
+		return errors.New("ipv4网关地址格式不对")
+	}
+
+	nameservers := rootJson.Get("dns-nameservers").Str
+	if !CheckIp(address) {
+		return errors.New("DNS格式不对")
+	}
+
+	file := C_NETWORK_FILE
+	in, err := os.Open(file)
 	defer in.Close()
+	if err != nil {
+		return err
+	}
 
 	flag := os.O_RDWR | os.O_CREATE
-	out, err := os.OpenFile(fileName, flag, 0755)
-	if err != nil {
-		res := result.Err.WithMsg(err.Error())
-		w.Write(res.Raw())
-		return
-	}
+	out, err := os.OpenFile(file, flag, 0755)
 	defer out.Close()
+	if err != nil {
+		return err
+	}
 
-	buf := bufio.NewReader(in)
+	s := bufio.NewScanner(in)
+
 	ready := false
-	for {
-		bytes, _, err := buf.ReadLine()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			res := result.Err.WithMsg(err.Error())
-			w.Write(res.Raw())
-			return
-		}
-
-		line := string(bytes)
-		if strings.HasPrefix(strings.TrimSpace(line), "#") {
-			_, err = out.WriteString(line + "\n")
-			if err != nil {
-				res := result.Err.WithMsg(err.Error())
-				w.Write(res.Raw())
-				return
-			}
-			continue
-		}
-
-		// Continue if line is empty
+	for s.Scan() {
+		line := s.Text()
 		if len(strings.TrimSpace(line)) == 0 {
 			if ready {
 				ready = false
@@ -378,9 +424,7 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 
 			_, err = out.WriteString(line + "\n")
 			if err != nil {
-				res := result.Err.WithMsg(err.Error())
-				w.Write(res.Raw())
-				return
+				return err
 			}
 			continue
 		}
@@ -389,43 +433,35 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 			ready = true
 			_, err = out.WriteString(line + "\n")
 			if err != nil {
-				res := result.Err.WithMsg(err.Error())
-				w.Write(res.Raw())
-				return
+				return err
 			}
 			continue
 		}
 
 		var newLine string
 		if ready {
-			sline := strings.Split(strings.TrimSpace(line), " ")
-			switch sline[0] {
+			strLine := strings.Split(strings.TrimSpace(line), " ")
+			switch strLine[0] {
 			case "address":
-				newLine = strings.Replace(line, sline[1], address, -1)
+				newLine = strings.Replace(line, strLine[1], address, -1)
 			case "netmask":
-				newLine = strings.Replace(line, sline[1], netmask, -1)
+				newLine = strings.Replace(line, strLine[1], netmask, -1)
 			case "gateway":
-				newLine = strings.Replace(line, sline[1], gateway, -1)
+				newLine = strings.Replace(line, strLine[1], gateway, -1)
 			case "dns-nameservers":
-				newLine = strings.Replace(line, sline[1], nameservers, -1)
-			default:
+				newLine = strings.Replace(line, strLine[1], nameservers, -1)
 			}
 			_, err = out.WriteString(newLine + "\n")
 			if err != nil {
-				res := result.Err.WithMsg(err.Error())
-				w.Write(res.Raw())
-				return
+				return err
 			}
 		} else {
 			_, err = out.WriteString(line + "\n")
 			if err != nil {
-				res := result.Err.WithMsg(err.Error())
-				w.Write(res.Raw())
-				return
+				return err
 			}
 		}
 	}
 
-	res := result.OK.WithMsg("修改成功")
-	w.Write(res.Raw())
+	return nil
 }
