@@ -35,5 +35,5 @@ func (c *Response) String() string {
 }
 
 func response(code int, message string) *Response {
-	return &Response{code, message, nil}
+	return &Response{Code: code, Msg: message, Data: nil}
 }
