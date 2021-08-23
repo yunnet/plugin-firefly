@@ -18,7 +18,7 @@ func PublishFlvFile(flv string) error {
 	if file, err := os.Open(flvPath); err == nil {
 		stream := Stream{
 			Type:       "FlvFile",
-			StreamPath: "flv",
+			StreamPath: "live/hw",
 		}
 		if stream.Publish() {
 			defer stream.Close()

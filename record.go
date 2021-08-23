@@ -174,7 +174,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if streamPath := r.URL.Query().Get("streamPath"); streamPath != "" {
-		filePath := filepath.Join(config.SavePath, streamPath+".flv")
+		filePath := filepath.Join(config.SavePath, streamPath)
 		if Exist(filePath) {
 			if err := os.Remove(filePath); err != nil {
 				w.Write([]byte(err.Error()))
