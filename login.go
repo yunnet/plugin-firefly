@@ -18,11 +18,28 @@ var (
 
 func RunLogin() {
 	//登陆
-	http.HandleFunc("/api/firefly/login", getLoginHandler)
+	http.HandleFunc("/api/firefly/login", loginHandler)
+
+	//刷新token
+	http.HandleFunc("/api/firefly/refresh", refreshHandler)
 
 	//重启机器
 	http.HandleFunc("/api/firefly/reboot", rebootHandler)
+}
 
+func refreshHandler(w http.ResponseWriter, r *http.Request) {
+	tokenString := r.Header.Get("token")
+	newTokenString, err := jwt.RefreshToken(tokenString, config.Timeout)
+	if err != nil {
+		log.Println(err.Error())
+
+		res := result.ErrInvalidToken
+		w.Write(res.Raw())
+		return
+	}
+
+	res := result.OK.WithData(newTokenString)
+	w.Write(res.Raw())
 }
 
 func CheckLogin(w http.ResponseWriter, r *http.Request) bool {
@@ -30,10 +47,10 @@ func CheckLogin(w http.ResponseWriter, r *http.Request) bool {
 
 	valid, err := jwt.ValidateToken(tokenString)
 	if err != nil {
+		log.Println(err.Error())
+
 		res := result.ErrUnauthorized
 		w.Write(res.Raw())
-
-		log.Println(err.Error())
 		return false
 	}
 	return valid
@@ -58,7 +75,7 @@ func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
-func getLoginHandler(w http.ResponseWriter, r *http.Request) {
+func loginHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	requestUser := r.URL.Query().Get("username")
 	if requestUser == "" {
@@ -88,7 +105,7 @@ func getLoginHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-	tokenString, _ := jwt.CreateToken(user, 3600)
+	tokenString, _ := jwt.CreateToken(user, config.Timeout)
 
 	res := result.OK.WithData(tokenString)
 	w.Write(res.Raw())

@@ -3,12 +3,14 @@ package firefly
 import (
 	. "github.com/Monibuca/engine/v3"
 	"os"
+	"time"
 )
 
 var config struct {
 	Path     string
 	Username string
 	Password string
+	Timeout  time.Duration
 
 	SavePath    string
 	AutoRecord  bool

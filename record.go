@@ -47,17 +47,16 @@ func RunRecord() {
 	http.HandleFunc("/api/record/play", playHandler)
 	http.HandleFunc("/api/record/delete", deleteHandler)
 
-	//gocron.Every(1).Day().At("00:00").Do(task)
 	if config.DaysStorage {
 		s := gocron.NewScheduler()
-		s.Every(3).Minute().Do(task)
-		//s.Every(1).Day().At("00:00").Do(task)
+		//s.Every(3).Minute().Do(task)
+		s.Every(1).Day().At("00:00:01").Do(task)
 		<-s.Start()
 	}
 }
 
 func task() {
-	log.Println("at 00:00 task...")
+	log.Println("at 00:00:01 task...")
 
 	recordings.Range(func(key, value interface{}) bool {
 		streamPath := key.(string)
@@ -77,10 +76,6 @@ func onPublish(p *Stream) {
 
 func vodHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
-		return
-	}
 
 	streamPath := r.RequestURI[5:]
 	filePath := filepath.Join(config.SavePath, streamPath)

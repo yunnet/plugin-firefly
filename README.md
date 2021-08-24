@@ -15,7 +15,15 @@ firefly plugin for monibuca
 | username | string |   |
 | password | string |   |
 
-### 2、重启机器
+### 2、登陆
+
+* 接口：/api/firefly/refresh
+
+* 请求方式：GET
+
+* 请求参数：无,需要Header带token
+
+### 3、重启机器
 
 * 接口：/api/firefly/reboot
 
@@ -23,7 +31,7 @@ firefly plugin for monibuca
 
 * 请求参数：无
 
-### 3、JSON配置查询
+### 4、JSON配置查询
 
 * 接口：/api/firefly/config
 
@@ -35,7 +43,7 @@ firefly plugin for monibuca
 |------|------: | :-----|
 | node | string | 如：network.trap
 
-### 4、JSON配置编辑
+### 5、JSON配置编辑
 
 * 接口：/api/firefly/config/edit
 
@@ -45,7 +53,7 @@ firefly plugin for monibuca
 
   {"node":"network.trap","data":{"ac":"YNLIJ-jm-lojoo-001","id":"1","ip":"218.202.50.250","port":1620}}
 
-###  5、网络查询
+###  6、网络查询
 
 * 接口：/api/firefly/config/tcp
 
@@ -53,7 +61,7 @@ firefly plugin for monibuca
 
 * 请求参数：无
 
-### 6、网络设置
+### 7、网络设置
 
 * 接口：/api/firefly/config/tcp/edit
 
@@ -63,7 +71,7 @@ firefly plugin for monibuca
 
   {"address":"192.168.0.110","dns-nameservers":"10.8.201.6","gateway":"192.168.0.1","netmask":"255.255.255.0"}
 
-### 7、网络Ping
+### 8、网络Ping
 
 * 接口：/api/firefly/config/ping
 
@@ -71,7 +79,7 @@ firefly plugin for monibuca
 
 * 请求参数：无
 
-### 8、点播功能
+### 9、点播功能
 
 * 接口：/api/firefly/config/ping
 
@@ -83,7 +91,7 @@ firefly plugin for monibuca
 
   将会读取对应的flv文件
 
-### 9、查询所有Flv文件
+### 10、查询所有Flv文件
 
 * 接口：/api/record/list
 
@@ -91,7 +99,7 @@ firefly plugin for monibuca
 
 * 请求参数：无
 
-### 10、开始录制
+### 11、开始录制
 
 * 接口：/api/record/start
 
@@ -103,7 +111,7 @@ firefly plugin for monibuca
 |------|------: | :-----|
 | streamPath | string | |
 
-### 11、停止录制
+### 12、停止录制
 
 * 接口：/api/record/stop
 
@@ -115,7 +123,7 @@ firefly plugin for monibuca
 |------|------: | :-----|
 | streamPath | string | |
 
-### 12、将某个flv文件读取并发布成一个直播流
+### 13、将某个flv文件读取并发布成一个直播流
 
 * 接口：/api/record/play
 
@@ -127,7 +135,7 @@ firefly plugin for monibuca
 |------|------: | :-----|
 | streamPath | string  | 文件名|
 
-### 13、删除某个flv文件
+### 14、删除某个flv文件
 
 * 接口：/api/record/delete
 

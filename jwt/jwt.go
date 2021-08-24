@@ -36,7 +36,7 @@ func ValidateToken(tokenString string) (bool, error) {
 
 	if claims == nil {
 		log.Println(err)
-		return false, errors.New("not work")
+		return false, errors.New(err.Error())
 	}
 
 	if claims.Valid {
@@ -52,4 +52,30 @@ func ValidateToken(tokenString string) (bool, error) {
 	} else {
 		return false, err
 	}
+}
+
+func RefreshToken(tokenString string, second time.Duration) (string, error) {
+	if tokenString == "" {
+		return "", errors.New("token is empty")
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+	if token == nil {
+		return "", errors.New(err.Error())
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New(err.Error())
+	}
+
+	username := claims["iss"].(string)
+	newTokenString, err := CreateToken(username, second)
+	if err != nil {
+		return "", errors.New(err.Error())
+	}
+
+	return newTokenString, nil
 }
