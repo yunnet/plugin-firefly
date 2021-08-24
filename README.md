@@ -10,9 +10,10 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-​	| username  | string
-
-​	| password  | string
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| username | string |   |
+| password | string |   |
 
 ### 2、重启机器
 
@@ -30,7 +31,9 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-  | node | string | 如：network.trap
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| node | string | 如：network.trap
 
 ### 4、JSON配置编辑
 
@@ -96,7 +99,9 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-  | streamPath | string
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| streamPath | string | |
 
 ### 11、停止录制
 
@@ -106,7 +111,9 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-  | streamPath | string
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| streamPath | string | |
 
 ### 12、将某个flv文件读取并发布成一个直播流
 
@@ -116,7 +123,9 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-  | streamPath | string  | 文件名
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| streamPath | string  | 文件名|
 
 ### 13、删除某个flv文件
 
@@ -126,4 +135,6 @@ firefly plugin for monibuca
 
 * 请求参数：
 
-  | streamPath | string  | 文件名
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| streamPath | string  | 文件名 |
