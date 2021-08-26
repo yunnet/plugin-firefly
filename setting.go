@@ -23,8 +23,8 @@ import (
 const (
 	C_JSON_FILE    = "firefly.json"
 	C_NETWORK_HEAD = "iface eth0"
-	C_NETWORK_FILE = "/etc/network/interfaces"
-	//C_NETWORK_FILE = "/interfaces"
+	//C_NETWORK_FILE = "/etc/network/interfaces"
+	C_NETWORK_FILE = "/interfaces"
 )
 
 func RunSetting() {
@@ -185,8 +185,8 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file := C_NETWORK_FILE
-	//file := config.Path + C_NETWORK_FILE
+	//file := C_NETWORK_FILE
+	file := config.Path + C_NETWORK_FILE
 	content, err := readInterfaces(file)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
@@ -307,8 +307,8 @@ func updateInterfaces(params string) error {
 		return errors.New("DNS格式不对")
 	}
 
-	file := C_NETWORK_FILE
-	//file := config.Path + C_NETWORK_FILE
+	//file := C_NETWORK_FILE
+	file := config.Path + C_NETWORK_FILE
 	in, err := os.Open(file)
 	defer in.Close()
 	if err != nil {
@@ -338,24 +338,26 @@ func updateInterfaces(params string) error {
 		}
 
 		if ready {
-			strLine := strings.Split(strings.TrimSpace(line), " ")
-			var newLine string
-			switch strLine[0] {
-			case "address":
-				newLine = strings.Replace(line, strLine[1], address, -1)
-			case "netmask":
-				newLine = strings.Replace(line, strLine[1], netmask, -1)
-			case "gateway":
-				newLine = strings.Replace(line, strLine[1], gateway, -1)
-			case "dns-nameservers":
-				newLine = strings.Replace(line, strLine[1], nameservers, -1)
+			if strings.Contains(line, "address") {
+				line = "address " + address
 			}
-			l.PushBack(newLine)
-		} else {
-			l.PushBack(line)
+
+			if strings.Contains(line, "netmask") {
+				line = "netmask " + netmask
+			}
+
+			if strings.Contains(line, "gateway") {
+				line = "gateway " + gateway
+			}
+
+			if strings.Contains(line, "dns-nameservers") {
+				line = "dns-nameservers " + nameservers
+			}
 		}
+
+		l.PushBack(line)
 	}
-	log.Printf("Internal modification completed. [%d]", cnt)
+	log.Printf("ip address [%d] rows affected is Changed", cnt)
 
 	flag := os.O_RDWR | os.O_CREATE
 	out, err := os.OpenFile(file, flag, 0755)

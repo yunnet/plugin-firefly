@@ -1,9 +1,9 @@
 package firefly
 
 import (
-	"encoding/json"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
+	result "github.com/yunnet/plugin-firefly/web"
 	"io"
 	"log"
 	"net/http"
@@ -97,12 +97,15 @@ func playHandler(w http.ResponseWriter, r *http.Request) {
 
 	if streamPath := r.URL.Query().Get("streamPath"); streamPath != "" {
 		if err := PublishFlvFile(streamPath); err != nil {
-			w.Write([]byte(err.Error()))
+			res := result.Err.WithMsg(err.Error())
+			w.Write(res.Raw())
 		} else {
-			w.Write([]byte("success"))
+			res := result.OK.WithMsg("成功")
+			w.Write(res.Raw())
 		}
 	} else {
-		w.Write([]byte("no streamPath"))
+		res := result.Err.WithMsg("no streamPath")
+		w.Write(res.Raw())
 	}
 }
 
@@ -115,12 +118,15 @@ func stopHandler(w http.ResponseWriter, r *http.Request) {
 
 	if streamPath := r.URL.Query().Get("streamPath"); streamPath != "" {
 		if err := StopFlv(streamPath); err == nil {
-			w.Write([]byte("success"))
+			res := result.OK.WithMsg("成功")
+			w.Write(res.Raw())
 		} else {
-			w.Write([]byte("no query stream"))
+			res := result.Err.WithMsg("no query stream")
+			w.Write(res.Raw())
 		}
 	} else {
-		w.Write([]byte("no such stream"))
+		res := result.Err.WithMsg("no such stream")
+		w.Write(res.Raw())
 	}
 }
 
@@ -135,29 +141,12 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 		if err := SaveFlv(streamPath, r.URL.Query().Get("append") == "true"); err != nil {
 			w.Write([]byte(err.Error()))
 		} else {
-			w.Write([]byte("success"))
+			res := result.OK.WithMsg("成功")
+			w.Write(res.Raw())
 		}
 	} else {
-		w.Write([]byte("no streamPath"))
-	}
-}
-
-func listHandler(w http.ResponseWriter, r *http.Request) {
-	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
-		return
-	}
-
-	if files, err := tree(config.SavePath, 0); err == nil {
-		var bytes []byte
-		if bytes, err = json.Marshal(files); err == nil {
-			w.Write(bytes)
-		} else {
-			w.Write([]byte("{\"err\":\"" + err.Error() + "\"}"))
-		}
-	} else {
-		w.Write([]byte("{\"err\":\"" + err.Error() + "\"}"))
+		res := result.Err.WithMsg("no streamPath")
+		w.Write(res.Raw())
 	}
 }
 
@@ -172,15 +161,19 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		filePath := filepath.Join(config.SavePath, streamPath)
 		if Exist(filePath) {
 			if err := os.Remove(filePath); err != nil {
-				w.Write([]byte(err.Error()))
+				res := result.Err.WithMsg(err.Error())
+				w.Write(res.Raw())
 			} else {
-				w.Write([]byte("success"))
+				res := result.OK.WithMsg("成功")
+				w.Write(res.Raw())
 			}
 		} else {
-			w.Write([]byte("no such file"))
+			res := result.Err.WithMsg("no such file")
+			w.Write(res.Raw())
 		}
 	} else {
-		w.Write([]byte("no streamPath"))
+		res := result.Err.WithMsg("no streamPath")
+		w.Write(res.Raw())
 	}
 }
 
@@ -222,5 +215,45 @@ func tree(dstPath string, level int) (files []*FlvFileInfo, err error) {
 		}
 		return
 	}
+}
 
+func getFileDate(path string) string {
+	dir, filename := filepath.Split(path)
+	size := len(dir)
+	parentDir := string([]byte(dir)[size-8 : size-3])
+	days := string([]byte(filename)[:5])
+	return parentDir + days
+}
+
+func listHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+	isOk := CheckLogin(w, r)
+	if !isOk {
+		return
+	}
+
+	month := r.URL.Query().Get("month")
+	if month == "" {
+		res := result.Err.WithMsg("年月不能为空")
+		w.Write(res.Raw())
+		return
+	}
+
+	if files, err := tree(config.SavePath, 0); err == nil {
+		var m = make(map[string][]*FlvFileInfo)
+		for i := 0; i < len(files); i++ {
+			f := files[i]
+			curTime := getFileDate(f.Path)
+			if strings.Contains(curTime, month) {
+				array, _ := m[curTime]
+				array = append(array, f)
+				m[curTime] = array
+			}
+		}
+		res := result.OK.WithData(m)
+		w.Write(res.Raw())
+	} else {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+	}
 }

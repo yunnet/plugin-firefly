@@ -30,7 +30,10 @@ func getDuration(file FileWr) uint32 {
 }
 
 func getSaveFileName(streamPath string) string {
-	return streamPath + "-" + time.Now().Format("2006-01-02-150405") + ".flv"
+	curTime := time.Now()
+	yyyyMM := curTime.Format("2006-01")
+	days := curTime.Format("01-02-150405")
+	return filepath.Join(streamPath, yyyyMM, days+".flv")
 }
 
 func SaveFlv(streamPath string, append bool) error {
