@@ -1,24 +1,23 @@
 package firefly
 
 import (
-	. "github.com/Monibuca/engine/v3"
+	"github.com/Monibuca/engine/v3"
 	"os"
 	"time"
 )
 
 var config struct {
-	Path     string
-	Username string
-	Password string
-	Timeout  time.Duration
-
+	Path        string
+	Username    string
+	Password    string
+	Timeout     time.Duration
 	SavePath    string
 	AutoRecord  bool
 	DaysStorage bool
 }
 
 func init() {
-	InstallPlugin(&PluginConfig{
+	engine.InstallPlugin(&engine.PluginConfig{
 		Name:   "Firefly",
 		Config: &config,
 		Run:    run,
