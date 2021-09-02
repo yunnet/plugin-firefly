@@ -23,8 +23,8 @@ import (
 const (
 	C_JSON_FILE    = "firefly.json"
 	C_NETWORK_HEAD = "iface eth0"
-	//C_NETWORK_FILE = "/etc/network/interfaces"
-	C_NETWORK_FILE = "/interfaces"
+	C_NETWORK_FILE = "/etc/network/interfaces"
+	//C_NETWORK_FILE = "/interfaces"
 )
 
 func RunSetting() {
@@ -185,8 +185,8 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//file := C_NETWORK_FILE
-	file := config.Path + C_NETWORK_FILE
+	file := C_NETWORK_FILE
+	//file := config.Path + C_NETWORK_FILE
 	content, err := readInterfaces(file)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
@@ -307,8 +307,8 @@ func updateInterfaces(params string) error {
 		return errors.New("DNS格式不对")
 	}
 
-	//file := C_NETWORK_FILE
-	file := config.Path + C_NETWORK_FILE
+	file := C_NETWORK_FILE
+	//file := config.Path + C_NETWORK_FILE
 	in, err := os.Open(file)
 	defer in.Close()
 	if err != nil {
