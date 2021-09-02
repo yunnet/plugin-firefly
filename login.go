@@ -16,17 +16,6 @@ var (
 	C_SALT = "firefly"
 )
 
-func RunLogin() {
-	//登陆
-	http.HandleFunc("/api/firefly/login", loginHandler)
-
-	//刷新token
-	http.HandleFunc("/api/firefly/refresh", refreshHandler)
-
-	//重启机器
-	http.HandleFunc("/api/firefly/reboot", rebootHandler)
-}
-
 func refreshHandler(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.Header.Get("token")
 	newTokenString, err := jwt.RefreshToken(tokenString, config.Timeout)

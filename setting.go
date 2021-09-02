@@ -27,22 +27,6 @@ const (
 	//C_NETWORK_FILE = "/interfaces"
 )
 
-func RunSetting() {
-	os.MkdirAll(config.Path, 0755)
-
-	//JSON配置查询
-	http.HandleFunc("/api/firefly/config", getConfigHandler)
-	//JSON配置编辑
-	http.HandleFunc("/api/firefly/config/edit", editConfigHandler)
-
-	//网络查询
-	http.HandleFunc("/api/firefly/config/tcp", getConfigTcpHandler)
-	//网络设置
-	http.HandleFunc("/api/firefly/config/tcp/edit", editConfigTcpHandler)
-	//网络ping
-	http.HandleFunc("/api/firefly/config/ping", pingConfigTcpHandler)
-}
-
 func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	ipAddr := r.URL.Query().Get("ipaddr")
