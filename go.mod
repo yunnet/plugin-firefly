@@ -18,6 +18,7 @@ require (
 	github.com/pion/rtp v1.7.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/q191201771/naza v0.20.1 // indirect
+	github.com/shirou/gopsutil/v3 v3.21.8
 	github.com/tidwall/gjson v1.8.1
 	github.com/tidwall/match v1.0.3 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
@@ -25,4 +26,9 @@ require (
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
+)
+
+require (
+	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/go-ole/go-ole v1.2.5 // indirect
 )

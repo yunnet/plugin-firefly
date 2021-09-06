@@ -49,5 +49,8 @@ func run() {
 	//网络ping
 	http.HandleFunc("/api/firefly/config/ping", pingConfigTcpHandler)
 
+	//storage
+	http.HandleFunc("/api/firefly/storage", storageHandler)
+
 	RunRecord()
 }
