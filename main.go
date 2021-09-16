@@ -11,10 +11,10 @@ var config struct {
 	Path        string
 	Username    string
 	Password    string
-	Timeout     time.Duration
-	SavePath    string
-	AutoRecord  bool
-	DaysStorage bool
+	Timeout     time.Duration // 会话超时
+	SavePath    string        // 录制存储路径
+	AutoRecord  bool          // 是否自动录制
+	DaysStorage bool          // 是否按天分割文件
 }
 
 func init() {

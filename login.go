@@ -47,8 +47,7 @@ func CheckLogin(w http.ResponseWriter, r *http.Request) bool {
 
 func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 

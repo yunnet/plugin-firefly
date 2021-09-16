@@ -90,8 +90,7 @@ func vodHandler(w http.ResponseWriter, r *http.Request) {
 
 func playHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -111,8 +110,7 @@ func playHandler(w http.ResponseWriter, r *http.Request) {
 
 func stopHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -132,8 +130,7 @@ func stopHandler(w http.ResponseWriter, r *http.Request) {
 
 func startHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -152,8 +149,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -227,8 +223,7 @@ func getFileDate(path string) string {
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 

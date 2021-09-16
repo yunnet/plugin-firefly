@@ -5,7 +5,7 @@ import (
 )
 
 func Test_ip(t *testing.T) {
-	ip1 := "192.168.0.1111"
+	ip1 := "192.168.0.111"
 	result := checkIp(ip1)
 	if result {
 		t.Log("pass")

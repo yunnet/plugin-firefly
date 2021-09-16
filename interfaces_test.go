@@ -4,86 +4,53 @@ import (
 	"bufio"
 	"container/list"
 	"encoding/json"
-	"errors"
-	"github.com/go-ping/ping"
 	"github.com/tidwall/gjson"
-	"io/ioutil"
-	"log"
 	"os"
-	"regexp"
 	"strings"
+	"testing"
 )
 
-func readFile(filePath string) (content string, err error) {
-	res, err := ioutil.ReadFile(filePath)
-	if nil != err {
-		return "", err
-	}
-	return string(res), nil
-}
-
-func accessible(ipAddr string) (bool, error) {
-	pinger, err := ping.NewPinger(ipAddr)
-	if err != nil {
-		return false, err
-	}
-	pinger.Count = 5
-	pinger.SetPrivileged(true)
-
-	if err := pinger.Run(); err != nil {
-		return false, err
-	}
-
-	stats := pinger.Statistics()
-	if stats.PacketsRecv >= 1 {
-		return true, nil
-	}
-
-	return false, errors.New("失败")
-}
-
-func readInterfaces(filePath string) (string, error) {
-	f, err := os.Open(filePath)
+func Test_read_interfaces(t *testing.T) {
+	path := "interfaces"
+	f, err := os.Open(path)
 	defer f.Close()
-
 	if err != nil {
-		return "", nil
+		t.Error(err)
 	}
 
 	s := bufio.NewScanner(f)
 	ready := false
+
 	var ipAddr = make(map[string]interface{}, 5)
-
 	for s.Scan() {
-		lines := strings.TrimSpace(s.Text())
+		line := strings.TrimSpace(s.Text())
 
-		if !ready && (strings.Compare(lines, C_AUTO_ETH0) == 0) {
+		if !ready && (strings.Compare(line, C_AUTO_ETH0) == 0) {
 			ready = true
 			continue
 		}
 
 		if ready {
-			if len(lines) == 0 {
+			if len(line) == 0 {
 				ready = false
 			} else {
-				if strings.Contains(lines, C_IFACE_ETH0) {
-					ary := strings.Split(lines, " ")
-					inet := strings.ToLower(ary[3])
-					if strings.Compare(inet, "dhcp") == 0 {
+				if strings.Contains(line, C_IFACE_ETH0) {
+					ary := strings.Split(line, " ")
+					if strings.Compare(ary[3], "dhcp") == 0 {
 						ready = false
 					}
-					ipAddr["inet"] = inet
+					ipAddr["inet"] = ary[3]
 				} else {
-					line := strings.SplitN(lines, " ", 2)
-					switch line[0] {
+					sline := strings.SplitN(line, " ", 2)
+					switch sline[0] {
 					case "address":
-						ipAddr["address"] = line[1]
+						ipAddr["address"] = sline[1]
 					case "netmask":
-						ipAddr["netmask"] = line[1]
+						ipAddr["netmask"] = sline[1]
 					case "gateway":
-						ipAddr["gateway"] = line[1]
+						ipAddr["gateway"] = sline[1]
 					case "dns-nameservers":
-						ipAddr["dns"] = line[1]
+						ipAddr["dns"] = sline[1]
 					default:
 					}
 				}
@@ -91,63 +58,73 @@ func readInterfaces(filePath string) (string, error) {
 		}
 	}
 	rootJson, _ := json.Marshal(ipAddr)
-	return string(rootJson), nil
+	t.Log(string(rootJson))
+
 }
 
-func checkIp(ip string) bool {
-	addr := strings.Trim(ip, " ")
-	regStr := `^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.)(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){2}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`
-	if match, _ := regexp.MatchString(regStr, addr); match {
-		return true
-	}
-	return false
-}
+var (
+	params = `{
+				"inet": "dhcp"
+				}`
 
-func updateInterfaces(params string) error {
+	//params = `{
+	//			"inet": "static",
+	//			"address": "192.168.0.110",
+	//			"netmask": "255.255.255.0",
+	//			"gateway": "192.168.0.1",
+	//			"dns": "144.144.144.144"
+	//			}`
+)
+
+func Test_update_interfaces(t *testing.T) {
 	rootJson := gjson.Parse(params)
 	dhcp := false
 
 	inet := rootJson.Get("inet").Str
 	if len(inet) == 0 {
-		return errors.New("inet不能为空")
+		t.Error("inet不能为空")
+		return
 	}
 	inet = strings.ToLower(inet)
 
 	if strings.Compare(inet, "dhcp") == 0 {
 		dhcp = true
 	}
-
 	var address, netmask, gateway, nameservers string
+
 	if !dhcp {
 		address = rootJson.Get("address").Str
 		if !checkIp(address) {
-			return errors.New("ipv4地址格式不对")
+			t.Error("ipv4地址格式不对")
+			return
 		}
 
 		netmask = rootJson.Get("netmask").Str
 		if !checkIp(netmask) {
-			return errors.New("ipv4子网掩码格式不对")
+			t.Error("ipv4子网掩码格式不对")
+			return
 		}
 
 		gateway = rootJson.Get("gateway").Str
 		if !checkIp(gateway) {
-			return errors.New("ipv4网关地址格式不对")
+			t.Error("ipv4网关地址格式不对")
+			return
 		}
 
 		nameservers = rootJson.Get("dns").Str
 		if !checkIp(nameservers) {
-			return errors.New("DNS格式不对")
+			t.Error("DNS格式不对")
+			return
 		}
 	}
 
-	file := C_NETWORK_FILE
-	//file := config.Path + C_NETWORK_FILE
-
-	in, err := os.Open(file)
+	path := "interfaces"
+	in, err := os.Open(path)
 	defer in.Close()
 
 	if err != nil {
-		return err
+		t.Error(err)
+		return
 	}
 
 	s := bufio.NewScanner(in)
@@ -193,19 +170,26 @@ func updateInterfaces(params string) error {
 			l.PushBack(lines)
 		}
 	}
-	log.Printf("ip address [%d] rows affected is Changed", cnt)
+	t.Logf("ip address [%d] rows affected is Changed", cnt)
+
+	for p := l.Front(); p != nil; p = p.Next() {
+		line := p.Value.(string)
+		t.Log(line + "\n")
+	}
+
+	result, _ := json.Marshal(l)
+	t.Logf("list: %s", string(result))
 
 	flag := os.O_TRUNC | os.O_CREATE
-	out, err := os.OpenFile(file, flag, 0755)
+	out, err := os.OpenFile("file.conf", flag, 0755)
 	defer out.Close()
-
 	if err != nil {
-		return err
+		t.Error(err)
+		return
 	}
 	for p := l.Front(); p != nil; p = p.Next() {
 		line := p.Value.(string)
 		out.WriteString(line + "\n")
 	}
 
-	return nil
 }

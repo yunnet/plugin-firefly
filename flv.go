@@ -67,6 +67,7 @@ func SaveFlv(streamPath string, append bool) error {
 		ID:   filePath,
 		Type: "FlvRecord",
 	}
+
 	var offsetTime uint32
 	if append {
 		offsetTime = getDuration(file)
@@ -74,29 +75,36 @@ func SaveFlv(streamPath string, append bool) error {
 	} else {
 		_, err = file.Write(codec.FLVHeader)
 	}
+
 	if err == nil {
 		recordings.Store(streamPath, &p)
 
 		if err := p.Subscribe(streamPath); err == nil {
 			vt, at := p.WaitVideoTrack(), p.WaitAudioTrack()
+
+			//音频
 			p.OnAudio = func(ts uint32, audio *AudioPack) {
 				if !append && at.CodecID == 10 { //AAC格式需要发送AAC头
 					codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_AUDIO, 0, at.ExtraData)
 				}
 				codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_AUDIO, ts+offsetTime, audio.Payload)
+
 				p.OnAudio = func(ts uint32, audio *AudioPack) {
 					codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_AUDIO, ts+offsetTime, audio.Payload)
 				}
 			}
+			//视频
 			p.OnVideo = func(ts uint32, video *VideoPack) {
 				if !append {
 					codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_VIDEO, 0, vt.ExtraData.Payload)
 				}
 				codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_VIDEO, ts+offsetTime, video.Payload)
+
 				p.OnVideo = func(ts uint32, video *VideoPack) {
 					codec.WriteFLVTag(file, codec.FLV_TAG_TYPE_VIDEO, ts+offsetTime, video.Payload)
 				}
 			}
+
 			go func() {
 				p.Play(at, vt)
 				file.Close()

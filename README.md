@@ -55,7 +55,7 @@ firefly plugin for monibuca
 
 ###  6、网络查询
 
-* 接口：/api/firefly/config/tcp
+_* 接口：/api/firefly/config/tcp
 
 * 请求方式：GET
 
@@ -77,7 +77,7 @@ firefly plugin for monibuca
 
 * 请求方式：GET
 
-* 请求参数：无
+* 请求参数：无_
 
 ### 9、点播功能
 

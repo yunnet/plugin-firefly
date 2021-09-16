@@ -1,7 +1,6 @@
 package firefly
 
 import (
-	"fmt"
 	. "github.com/Monibuca/utils/v3"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/tidwall/gjson"
@@ -11,15 +10,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 const (
 	C_JSON_FILE    = "firefly.json"
-	C_NETWORK_HEAD = "iface eth0"
+	C_MNT_SD       = "/mnt/sd"
+	C_AUTO_ETH0    = "auto eth0"
+	C_IFACE_ETH0   = "iface eth0"
 	C_NETWORK_FILE = "/etc/network/interfaces"
 	//C_NETWORK_FILE = "/interfaces"
 )
 
+/**
+  [Get] /api/firefly/config/ping
+*/
 func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	ipAddr := r.URL.Query().Get("ipaddr")
@@ -38,10 +43,12 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/**
+  [Get] /api/firefly/config
+*/
 func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -63,10 +70,12 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/**
+  [POST] /api/firefly/config/edit
+*/
 func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -127,10 +136,12 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
+/**
+  [Get] /api/firefly/config/tcp
+*/
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -147,10 +158,12 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
+/**
+  [POST] /api/firefly/config/tcp/edit
+*/
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
-	isOk := CheckLogin(w, r)
-	if !isOk {
+	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
@@ -177,22 +190,26 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/**
+  查看磁盘大小  默认只查看 "/mnt/sd"
+  [Get] /api/firefly/storage
+*/
 func storageHandler(w http.ResponseWriter, r *http.Request) {
-	partitions, err := disk.Partitions(false)
+	CORS(w, r)
+	if isOk := CheckLogin(w, r); !isOk {
+		return
+	}
+
+	if runtime.GOOS == "windows" {
+		res := result.Err.WithMsg("windows not support")
+		w.Write(res.Raw())
+	}
+
+	usageStat, err := disk.Usage(C_MNT_SD)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
 	}
-
-	diskUsages := make([]*disk.UsageStat, len(partitions))
-	for k, v := range partitions {
-		usageStat, err := disk.Usage(v.Mountpoint)
-		if err != nil {
-			fmt.Println(err.Error())
-			continue
-		}
-		diskUsages[k] = usageStat
-	}
-	res := result.OK.WithData(diskUsages)
+	res := result.OK.WithData(usageStat)
 	w.Write(res.Raw())
 }
