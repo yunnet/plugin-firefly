@@ -29,6 +29,9 @@ func init() {
 func run(ctx context.Context) {
 	os.MkdirAll(config.Path, 0755)
 
+	//hi
+	http.HandleFunc("/api/firefly/hi", hiHandler)
+
 	//登陆
 	http.HandleFunc("/api/firefly/login", loginHandler)
 

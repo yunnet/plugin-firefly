@@ -63,8 +63,7 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write(res.Raw())
 			return
 		}
-		root := gjson.Parse(content)
-		nodeJson := root.Get(node)
+		nodeJson := gjson.Get(content, node)
 		res := result.OK.WithData(nodeJson.Value())
 		w.Write(res.Raw())
 	} else {
@@ -75,6 +74,7 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 /**
   [POST] /api/firefly/config/edit
+  {"node":"boxinfo","data":{"rtsp":"rtsp://admin:Hw12345678@192.168.0.120:554/LiveMedia/ch1/Media1","name":"haiwei"}}
 */
 func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
@@ -87,7 +87,6 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-
 	defer r.Body.Close()
 
 	request, err := ioutil.ReadAll(r.Body)
@@ -96,17 +95,25 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-	requestJson := gjson.Parse(string(request))
+	params := string(request)
+	if !gjson.Valid(params) {
+		res := result.Err.WithMsg("Json format error")
+		w.Write(res.Raw())
+		return
+	}
 
-	nodePath := requestJson.Get("node")
+	//node
+	nodePath := gjson.Get(params, "node")
 	if !nodePath.Exists() {
 		res := result.Err.WithMsg("param node does not exist.")
 		w.Write(res.Raw())
 		return
 	}
-	nodeData := requestJson.Get("data")
-	if !nodePath.Exists() {
-		res := result.Err.WithMsg("param node data does not exist.")
+
+	//data
+	nodeData := gjson.Get(params, "data")
+	if !nodeData.Exists() {
+		res := result.Err.WithMsg("param data node does not exist.")
 		w.Write(res.Raw())
 		return
 	}
@@ -114,8 +121,7 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(config.Path, C_JSON_FILE)
 	content, err := readFile(filePath)
 
-	rootJson := gjson.Parse(content)
-	node := rootJson.Get(nodePath.String())
+	node := gjson.Get(content, nodePath.String())
 	if !node.Exists() {
 		res := result.Err.WithMsg("node does not exist.")
 		w.Write(res.Raw())

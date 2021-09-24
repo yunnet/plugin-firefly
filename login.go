@@ -63,6 +63,16 @@ func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
+func hiHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+	if isOk := CheckLogin(w, r); !isOk {
+		return
+	}
+
+	res := result.OK
+	w.Write(res.Raw())
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	requestUser := r.URL.Query().Get("username")

@@ -7,6 +7,7 @@ import (
 	amf "github.com/zhangpeihao/goamf"
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -113,4 +114,13 @@ func Test_Duration(t *testing.T) {
 	d := getDuration(f)
 
 	t.Log(d)
+}
+
+func Test_Flv_filename(t *testing.T) {
+	filepath := "/mnt/sd/live/hw/2021-09/09-24-085922.flv"
+	idx := strings.LastIndex(filepath, "/")
+	tempfile := filepath[0:idx] + "/temp.flv"
+
+	fmt.Println(tempfile)
+
 }

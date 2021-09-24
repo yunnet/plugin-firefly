@@ -8,6 +8,7 @@ import (
 	. "github.com/Monibuca/utils/v3"
 	"github.com/Monibuca/utils/v3/codec"
 	"os/exec"
+	"strings"
 
 	//amf "github.com/cnotch/ipchub/av/format/amf"
 	amf "github.com/zhangpeihao/goamf"
@@ -165,14 +166,21 @@ func SaveFlv(streamPath string, isAppend bool) error {
 func transferFlv(filename string) {
 	log.Printf(":::::::::::::::::transferFlv: %s::::::::::::::::", filename)
 
-	if err := exec.Command("yamdi", "-i", filename, "-o", "temp.flv").Run(); err != nil {
-		log.Printf("error: yamdi -i %s -o temp.flv, %s", filename, err.Error())
+	idx := strings.LastIndex(filename, "/")
+	tempfile := filename[0:idx] + "/temp.flv"
+
+	nowTime := time.Now()
+	if err := exec.Command("yamdi", "-i", filename, "-o", tempfile).Run(); err != nil {
+		log.Printf("yamdi -i %s -o %s \n error: %s", filename, tempfile, err.Error())
 		return
 	}
+	endTime := time.Now()
 
-	err := os.Rename("temp.flv", filename)
+	log.Printf("spend time(s): %f \n", endTime.Sub(nowTime).Seconds())
+
+	err := os.Rename(tempfile, filename)
 	if err != nil {
-		log.Printf("发生错误，错误为：%v\n", err)
+		log.Printf("rename error: %v\n", err)
 	}
 }
 
