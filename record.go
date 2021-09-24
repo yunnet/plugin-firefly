@@ -16,6 +16,8 @@ import (
 	"github.com/jasonlvhit/gocron"
 )
 
+const diskSpaceThreshold = 80.00
+
 var recordings sync.Map
 
 type FlvFileInfo struct {
@@ -50,13 +52,14 @@ func RunRecord() {
 	if config.DaysStorage {
 		s := gocron.NewScheduler()
 		//s.Every(3).Minute().Do(task)
-		s.Every(1).Day().At("00:00:01").Do(task)
+		s.Every(1).Day().At("00:00:01").Do(doTask)
 		<-s.Start()
 	}
 }
 
-func task() {
+func doTask() {
 	log.Println("at 00:00:01 task...")
+	checkDisk()
 
 	recordings.Range(func(key, value interface{}) bool {
 		streamPath := key.(string)
@@ -65,6 +68,37 @@ func task() {
 		SaveFlv(streamPath, false)
 		return true
 	})
+}
+
+func checkDisk() {
+	for {
+		percent, _ := getSdCardUsedPercent()
+		if percent < diskSpaceThreshold {
+			break
+		}
+		freeDisk()
+	}
+}
+
+func freeDisk() {
+	var files []string
+	walkFunc := func(itemPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		ext := strings.ToLower(filepath.Ext(itemPath))
+		if ext == ".flv" || ext == ".FLV" {
+			files = append(files, itemPath)
+		}
+		return nil
+	}
+	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
+		delFile := files[0]
+		log.Println(delFile)
+		if err := os.Remove(delFile); err != nil {
+			log.Printf("remove file %s error. %s", delFile, err)
+		}
+	}
 }
 
 func onPublish(p *Stream) {

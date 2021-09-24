@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-ping/ping"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"log"
@@ -13,6 +14,18 @@ import (
 	"regexp"
 	"strings"
 )
+
+func SdCardStat() (*disk.UsageStat, error) {
+	return disk.Usage(C_MNT_SD)
+}
+
+func getSdCardUsedPercent() (float64, error) {
+	sd, err := disk.Usage(C_MNT_SD)
+	if err != nil {
+		return 0, err
+	}
+	return sd.UsedPercent, nil
+}
 
 func readFile(filePath string) (content string, err error) {
 	res, err := ioutil.ReadFile(filePath)
@@ -103,15 +116,28 @@ func checkIp(ip string) bool {
 	return false
 }
 
+func checkInet(inet string) bool {
+	for _, value := range InetList {
+		if strings.Compare(value, inet) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func updateInterfaces(params string) error {
 	rootJson := gjson.Parse(params)
 	dhcp := false
 
 	inet := rootJson.Get("inet").Str
 	if len(inet) == 0 {
-		return errors.New("inet不能为空")
+		return errors.New("IPv4方式不能为空")
 	}
 	inet = strings.ToLower(inet)
+
+	if ok := checkInet(inet); !ok {
+		return errors.New("请正确选择IPv4方式")
+	}
 
 	if strings.Compare(inet, "dhcp") == 0 {
 		dhcp = true
@@ -140,10 +166,7 @@ func updateInterfaces(params string) error {
 		}
 	}
 
-	file := C_NETWORK_FILE
-	//file := config.Path + C_NETWORK_FILE
-
-	in, err := os.Open(file)
+	in, err := os.Open(C_NETWORK_FILE)
 	defer in.Close()
 
 	if err != nil {
@@ -196,7 +219,7 @@ func updateInterfaces(params string) error {
 	log.Printf("ip address [%d] rows affected is Changed", cnt)
 
 	flag := os.O_TRUNC | os.O_CREATE
-	out, err := os.OpenFile(file, flag, 0755)
+	out, err := os.OpenFile(C_NETWORK_FILE, flag, 0755)
 	defer out.Close()
 
 	if err != nil {

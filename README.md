@@ -69,7 +69,7 @@ _* 接口：/api/firefly/config/tcp
 
 * 请求参数：
 
-  {"address":"192.168.0.110","dns-nameservers":"10.8.201.6","gateway":"192.168.0.1","netmask":"255.255.255.0"}
+  {"inet": "static", "address":"192.168.0.110","dns":"10.8.201.6 114.114.114.114","gateway":"192.168.0.1","netmask":"255.255.255.0"}
 
 ### 8、网络Ping
 
@@ -77,11 +77,15 @@ _* 接口：/api/firefly/config/tcp
 
 * 请求方式：GET
 
-* 请求参数：无_
+* 请求参数：
+
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| ipaddr | string | 如：192.168.0.110
 
 ### 9、点播功能
 
-* 接口：/api/firefly/config/ping
+* 接口：/vod/*
 
 * 请求方式：GET
 
@@ -146,3 +150,12 @@ _* 接口：/api/firefly/config/tcp
 | 字段  | 类型   | 说明   |
 |------|------: | :-----|
 | streamPath | string  | 文件名 |
+
+
+### 15、查看SD卡信息
+
+* 接口：/api/firefly/storage
+
+* 请求方式：GET
+
+* 请求参数：无

@@ -1,6 +1,7 @@
 package firefly
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"path/filepath"
@@ -54,5 +55,16 @@ func Test_file(t *testing.T) {
 	} else {
 		t.Error("fail")
 	}
+
+}
+
+func Test_StringHex(t *testing.T) {
+	a := "0123456789"
+	bytes, err := hex.DecodeString(a)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(string(bytes))
 
 }

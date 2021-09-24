@@ -1,6 +1,7 @@
 package firefly
 
 import (
+	"context"
 	"github.com/Monibuca/engine/v3"
 	"net/http"
 	"os"
@@ -25,7 +26,7 @@ func init() {
 	})
 }
 
-func run() {
+func run(ctx context.Context) {
 	os.MkdirAll(config.Path, 0755)
 
 	//登陆
@@ -53,4 +54,11 @@ func run() {
 	http.HandleFunc("/api/firefly/storage", storageHandler)
 
 	RunRecord()
+
+	select {
+	case <-ctx.Done():
+		return
+	default:
+
+	}
 }

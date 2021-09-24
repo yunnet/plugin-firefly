@@ -2,6 +2,11 @@ module github.com/yunnet/plugin-firefly
 
 go 1.17
 
+replace (
+github.com/Monibuca/engine/v3 v3.3.4 => ../engine
+github.com/Monibuca/utils/v3 v3.0.2 => ../utils
+)
+
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/Monibuca/engine/v3 v3.3.4
@@ -23,6 +28,7 @@ require (
 	github.com/tidwall/match v1.0.3 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.1.7
+	github.com/zhangpeihao/goamf v0.0.0-20140409082417-3ff2c19514a8
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
@@ -31,4 +37,6 @@ require (
 require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	github.com/tklauser/numcpus v0.3.0 // indirect
 )

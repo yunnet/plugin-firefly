@@ -2,7 +2,6 @@ package firefly
 
 import (
 	. "github.com/Monibuca/utils/v3"
-	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	result "github.com/yunnet/plugin-firefly/web"
@@ -20,6 +19,10 @@ const (
 	C_IFACE_ETH0   = "iface eth0"
 	C_NETWORK_FILE = "/etc/network/interfaces"
 	//C_NETWORK_FILE = "/interfaces"
+)
+
+var (
+	InetList = [4]string{"dhcp", "static", "loopback", "manual"}
 )
 
 /**
@@ -205,7 +208,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 	}
 
-	usageStat, err := disk.Usage(C_MNT_SD)
+	usageStat, err := SdCardStat()
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
