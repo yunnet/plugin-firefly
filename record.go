@@ -141,7 +141,7 @@ func playHandler(w http.ResponseWriter, r *http.Request) {
 			res := result.Err.WithMsg(err.Error())
 			w.Write(res.Raw())
 		} else {
-			res := result.OK.WithMsg("成功")
+			res := result.OK.WithMsg("success")
 			w.Write(res.Raw())
 		}
 	} else {
@@ -158,7 +158,7 @@ func stopHandler(w http.ResponseWriter, r *http.Request) {
 
 	if streamPath := r.URL.Query().Get("streamPath"); streamPath != "" {
 		if err := StopFlv(streamPath); err == nil {
-			res := result.OK.WithMsg("成功")
+			res := result.OK.WithMsg("success")
 			w.Write(res.Raw())
 		} else {
 			res := result.Err.WithMsg("no query stream")
@@ -180,7 +180,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 		if err := SaveFlv(streamPath, r.URL.Query().Get("append") == "true"); err != nil {
 			w.Write([]byte(err.Error()))
 		} else {
-			res := result.OK.WithMsg("成功")
+			res := result.OK.WithMsg("success")
 			w.Write(res.Raw())
 		}
 	} else {
@@ -202,7 +202,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 				res := result.Err.WithMsg(err.Error())
 				w.Write(res.Raw())
 			} else {
-				res := result.OK.WithMsg("成功")
+				res := result.OK.WithMsg("success")
 				w.Write(res.Raw())
 			}
 		} else {

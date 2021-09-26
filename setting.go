@@ -40,7 +40,7 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 
 	isOk, err := accessible(ipAddr)
 	if isOk {
-		res := result.OK.WithMsg("成功")
+		res := result.OK.WithMsg("success")
 		w.Write(res.Raw())
 	} else {
 		res := result.Err.WithMsg(err.Error())
@@ -217,7 +217,7 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
 	} else {
-		res := result.OK.WithMsg("修改成功")
+		res := result.OK.WithMsg("success")
 		w.Write(res.Raw())
 	}
 }

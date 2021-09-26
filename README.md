@@ -17,7 +17,8 @@ firefly plugin for monibuca
 
 * 返回结果：
   {"code":200,"msg":"ok","data":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzI2Mzk5ODYsImlzcyI6ImFkbWluIn0.lGyxvdi027cl9J512-jdw1fr33ujGfjeN8-OvNN_7nA"}
-
+  
+  {"code":500,"msg":"用户名或密码错误,请重新输入","data":null}
 
 ### 2、登陆
 
@@ -30,6 +31,8 @@ firefly plugin for monibuca
 * 返回结果：
 
   {"code":200,"msg":"ok","data":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzI2NDAwNDUsImlzcyI6ImFkbWluIn0.EwejmIy1gapQvwxaqADdHxXqvA8Nqh6uKYvN29uZPog"}
+
+  {"code":10002,"msg":"无效token","data":null}
 
 ### 3、重启机器
 
@@ -95,6 +98,7 @@ _* 接口：/api/firefly/config/tcp
 
 * 返回结果：
   
+  {"code":200,"msg":"ok","data":"success"}
   
 
 ### 8、网络Ping
@@ -108,6 +112,12 @@ _* 接口：/api/firefly/config/tcp
 | 字段  | 类型   | 说明   |
 |------|------: | :-----|
 | ipaddr | string | 如：192.168.0.110
+
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":"success"}
+  
+  {"code":500,"msg":"error","data":null}
 
 ### 9、点播功能
 
@@ -127,7 +137,16 @@ _* 接口：/api/firefly/config/tcp
 
 * 请求方式：GET
 
-* 请求参数：无
+* 请求参数：
+
+| 字段  | 类型   | 说明   |
+|------|------: | :-----|
+| month | string | 2021-09 |
+
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":{"2021-09-26":[{"Path":"live/hw/2021/09/26/085839.flv","Size":1286094259,"Duration":3551961},{"Path":"live/hw/2021/09/26/111013.flv","Size":1247917892,"Duration":3600000},{"Path":"live/hw/2021/09/26/101100.flv","Size":1279732115,"Duration":3552880}]}}
+
 
 ### 11、开始录制
 
@@ -141,6 +160,12 @@ _* 接口：/api/firefly/config/tcp
 |------|------: | :-----|
 | streamPath | string | |
 
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":"success"}
+
+  {"code":500,"msg":"error","data":null}
+
 ### 12、停止录制
 
 * 接口：/api/record/stop
@@ -152,6 +177,12 @@ _* 接口：/api/firefly/config/tcp
 | 字段  | 类型   | 说明   |
 |------|------: | :-----|
 | streamPath | string | |
+
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":"success"}
+
+  {"code":500,"msg":"error","data":null}
 
 ### 13、将某个flv文件读取并发布成一个直播流
 
@@ -185,3 +216,7 @@ _* 接口：/api/firefly/config/tcp
 * 请求方式：GET
 
 * 请求参数：无
+
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":{"path":"/mnt/sd","fstype":"msdos","total":62528684032,"free":51366330368,"used":11162353664,"usedPercent":17.851572980949825,"inodesTotal":0,"inodesUsed":0,"inodesFree":0,"inodesUsedPercent":0}}

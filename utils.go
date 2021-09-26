@@ -56,7 +56,7 @@ func accessible(ipAddr string) (bool, error) {
 		return true, nil
 	}
 
-	return false, errors.New("失败")
+	return false, errors.New("error")
 }
 
 func readInterfaces(filePath string) (string, error) {
