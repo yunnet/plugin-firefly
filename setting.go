@@ -12,15 +12,6 @@ import (
 	"runtime"
 )
 
-const (
-	C_JSON_FILE    = "firefly.json"
-	C_MNT_SD       = "/mnt/sd"
-	C_AUTO_ETH0    = "auto eth0"
-	C_IFACE_ETH0   = "iface eth0"
-	C_NETWORK_FILE = "/etc/network/interfaces"
-	//C_NETWORK_FILE = "/interfaces"
-)
-
 var (
 	InetList = [4]string{"dhcp", "static", "loopback", "manual"}
 )
@@ -30,12 +21,23 @@ var (
 */
 func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfigPing {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	ipAddr := r.URL.Query().Get("ipaddr")
 	if ipAddr == "" {
 		res := result.Err.WithMsg("ipv4地址不能为空")
 		w.Write(res.Raw())
 		return
 	}
+	if !checkIp(ipAddr) {
+		res := result.Err.WithMsg("ipv4地址格式不对")
+		w.Write(res.Raw())
+		return
+	}
+
 	isOk, err := accessible(ipAddr)
 	if isOk {
 		res := result.OK.WithMsg("成功")
@@ -51,6 +53,10 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfig {
+		NotFoundHandler(w, r)
+		return
+	}
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -78,6 +84,10 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 */
 func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfigEdit {
+		NotFoundHandler(w, r)
+		return
+	}
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -150,13 +160,18 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 */
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfigTcp {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
-	file := C_NETWORK_FILE
-	//file := config.Path + C_NETWORK_FILE
-	content, err := readInterfaces(file)
+	filePath := C_NETWORK_FILE
+	//filePath := config.Path + C_NETWORK_FILE
+	content, err := readInterfaces(filePath)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
@@ -172,6 +187,11 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfigTcpEdit {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -189,7 +209,10 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = updateInterfaces(string(params))
+	filePath := C_NETWORK_FILE
+	//filePath := config.Path + C_NETWORK_FILE
+
+	err = updateInterfaces(string(params), filePath)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
@@ -205,6 +228,11 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyConfigStorage {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}

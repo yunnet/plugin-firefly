@@ -37,10 +37,8 @@ func getDuration(file FileWr) uint32 {
 }
 
 func getSaveFileName(streamPath string) string {
-	curTime := time.Now()
-	yyyyMM := curTime.Format("2006-01")
-	days := curTime.Format("01-02-150405")
-	return filepath.Join(streamPath, yyyyMM, days+".flv")
+	t := time.Now().Format("2006/01/02/150405")
+	return filepath.Join(streamPath, t) + ".flv"
 }
 
 func SaveFlv(streamPath string, isAppend bool) error {
@@ -78,7 +76,6 @@ func SaveFlv(streamPath string, isAppend bool) error {
 	} else {
 		_, err = file.Write(codec.FLVHeader)
 	}
-
 	if err != nil {
 		file.Close()
 	}
@@ -116,6 +113,7 @@ func SaveFlv(streamPath string, isAppend bool) error {
 		//音频
 		p.OnAudio = func(ts uint32, audio *AudioPack) {
 			log.Printf("::::::::::::::::::OnAudio::::::::::::::::")
+
 			metaData["videocodecid"] = int(at.CodecID)
 			metaData["audiosamplerate"] = at.SoundRate
 			metaData["audiosamplesize"] = int(at.SoundSize)
@@ -133,6 +131,7 @@ func SaveFlv(streamPath string, isAppend bool) error {
 		//视频
 		p.OnVideo = func(ts uint32, video *VideoPack) {
 			log.Printf("::::::::::::::::::OnVideo::::::::::::::::")
+
 			metaData["videocodecid"] = int(vt.CodecID)
 			metaData["width"] = vt.SPSInfo.Width
 			metaData["height"] = vt.SPSInfo.Height

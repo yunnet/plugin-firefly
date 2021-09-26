@@ -12,11 +12,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jasonlvhit/gocron"
 )
-
-const diskSpaceThreshold = 80.00
 
 var recordings sync.Map
 
@@ -49,16 +48,25 @@ func RunRecord() {
 	http.HandleFunc("/api/record/play", playHandler)
 	http.HandleFunc("/api/record/delete", deleteHandler)
 
-	if config.DaysStorage {
+	if config.SliceStorage {
 		s := gocron.NewScheduler()
 		//s.Every(3).Minute().Do(task)
-		s.Every(1).Day().At("00:00:01").Do(doTask)
+		//s.Every(1).Hour().Do(doTask)
+		m := config.SliceTime
+		if m < 5 {
+			m = 5
+			log.Printf("record at least %d minutes.", m)
+		}
+		log.Printf("the current recording is set to %d minutes.", m)
+
+		s.Every(uint64(m)).Minute().Do(doTask)
 		<-s.Start()
 	}
 }
 
 func doTask() {
-	log.Println("at 00:00:01 task...")
+	log.Printf("at %s task...", time.Now().Format("2006-01-02 15:04:05"))
+
 	checkDisk()
 
 	recordings.Range(func(key, value interface{}) bool {
@@ -73,7 +81,7 @@ func doTask() {
 func checkDisk() {
 	for {
 		percent, _ := getSdCardUsedPercent()
-		if percent < diskSpaceThreshold {
+		if percent < C_DISK_SPACE_THRESHOLD {
 			break
 		}
 		freeDisk()
@@ -247,12 +255,8 @@ func tree(dstPath string, level int) (files []*FlvFileInfo, err error) {
 	}
 }
 
-func getFileDate(path string) string {
-	dir, filename := filepath.Split(path)
-	size := len(dir)
-	parentDir := string([]byte(dir)[size-8 : size-3])
-	days := string([]byte(filename)[:5])
-	return parentDir + days
+func getYearMonthDay(path string) string {
+	return strings.ReplaceAll(path[len(path)-21:len(path)-11], "/", "-")
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
@@ -272,11 +276,12 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		var m = make(map[string][]*FlvFileInfo)
 		for i := 0; i < len(files); i++ {
 			f := files[i]
-			curTime := getFileDate(f.Path)
-			if strings.Contains(curTime, month) {
-				array, _ := m[curTime]
+			day := getYearMonthDay(f.Path) //2021-09
+			y := day[0:7]
+			if strings.Compare(y, month) == 0 {
+				array, _ := m[day]
 				array = append(array, f)
-				m[curTime] = array
+				m[day] = array
 			}
 		}
 		res := result.OK.WithData(m)

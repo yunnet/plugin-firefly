@@ -3,17 +3,15 @@ package firefly
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/yunnet/plugin-firefly/jwt"
 	result "github.com/yunnet/plugin-firefly/web"
 	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	. "github.com/Monibuca/utils/v3"
-)
-
-var (
-	C_SALT = "firefly"
 )
 
 func refreshHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +45,10 @@ func CheckLogin(w http.ResponseWriter, r *http.Request) bool {
 
 func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyReboot {
+		NotFoundHandler(w, r)
+		return
+	}
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -65,12 +67,22 @@ func rebootHandler(w http.ResponseWriter, r *http.Request) {
 
 func hiHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.URL.Path != ApiFireflyHi {
+		NotFoundHandler(w, r)
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
 	res := result.OK
 	w.Write(res.Raw())
+}
+
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprint(w, "custom 404")
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +110,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	m5 := md5.New()
 	m5.Write([]byte(requestPassword + C_SALT))
 	password := hex.EncodeToString(m5.Sum(nil))
-	if config.Password != password {
+	if strings.Compare(config.Password, password) != 0 {
 		res := result.Err.WithMsg("用户名或密码错误,请重新输入")
 		w.Write(res.Raw())
 		return

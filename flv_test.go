@@ -7,7 +7,6 @@ import (
 	amf "github.com/zhangpeihao/goamf"
 	"io"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -101,26 +100,43 @@ func getFileSize(f FileWr) uint64 {
 }
 
 func Test_Duration(t *testing.T) {
-	filepath := "d:/flv/09-23-165251.flv"
-	var f FileWr
+	dstPath := "D:/FLV/085839.flv"
 	var err error
-	flag := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
-	f, err = os.OpenFile(filepath, flag, 0755)
+
+	var dstF *os.File
+	dstF, err = os.Open(dstPath)
 	if err != nil {
-		fmt.Println(err.Error())
+		return
+	}
+	defer dstF.Close()
+
+	fileInfo, err := dstF.Stat()
+	if err != nil {
 		return
 	}
 
-	d := getDuration(f)
+	t.Log("file size = ", fileInfo.Size())
 
-	t.Log(d)
+	d := getDuration(dstF)
+	t.Log("milliSecond = ", d)
+	t.Log("time = ", FormatTime(int(d)))
 }
 
-func Test_Flv_filename(t *testing.T) {
-	filepath := "/mnt/sd/live/hw/2021-09/09-24-085922.flv"
-	idx := strings.LastIndex(filepath, "/")
-	tempfile := filepath[0:idx] + "/temp.flv"
+func Test_time(t *testing.T) {
+	ms := 3551961
 
-	fmt.Println(tempfile)
+	ss := 1000
+	mi := ss * 60
+	hh := mi * 60
+	dd := hh * 24
 
+	day := ms / dd
+	hour := (ms - day*dd) / hh
+	minute := (ms - day*dd - hour*hh) / mi
+	second := (ms - day*dd - hour*hh - minute*mi) / ss
+	milliSecond := ms - day*dd - hour*hh - minute*mi - second*ss
+
+	t.Logf("%d天%d小时%d分%d秒%d毫秒", day, hour, minute, second, milliSecond)
+
+	t.Logf("%d:%d:%d.%d", hour, minute, second, milliSecond)
 }

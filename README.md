@@ -15,6 +15,10 @@ firefly plugin for monibuca
 | username | string |   |
 | password | string |   |
 
+* 返回结果：
+  {"code":200,"msg":"ok","data":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzI2Mzk5ODYsImlzcyI6ImFkbWluIn0.lGyxvdi027cl9J512-jdw1fr33ujGfjeN8-OvNN_7nA"}
+
+
 ### 2、登陆
 
 * 接口：/api/firefly/refresh
@@ -23,6 +27,10 @@ firefly plugin for monibuca
 
 * 请求参数：无,需要Header带token
 
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzI2NDAwNDUsImlzcyI6ImFkbWluIn0.EwejmIy1gapQvwxaqADdHxXqvA8Nqh6uKYvN29uZPog"}
+
 ### 3、重启机器
 
 * 接口：/api/firefly/reboot
@@ -30,6 +38,8 @@ firefly plugin for monibuca
 * 请求方式：GET
 
 * 请求参数：无
+
+* 返回结果：无
 
 ### 4、JSON配置查询
 
@@ -43,6 +53,10 @@ firefly plugin for monibuca
 |------|------: | :-----|
 | node | string | 如：network.trap
 
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":{"ac":"YNLIJ-jm-lojoo-001","id":"2","ip":"218.202.50.250","port":1620}}
+
 ### 5、JSON配置编辑
 
 * 接口：/api/firefly/config/edit
@@ -53,6 +67,10 @@ firefly plugin for monibuca
 
   {"node":"network.trap","data":{"ac":"YNLIJ-jm-lojoo-001","id":"1","ip":"218.202.50.250","port":1620}}
 
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":"success"}
+
 ###  6、网络查询
 
 _* 接口：/api/firefly/config/tcp
@@ -60,6 +78,10 @@ _* 接口：/api/firefly/config/tcp
 * 请求方式：GET
 
 * 请求参数：无
+
+* 返回结果：
+
+  {"code":200,"msg":"ok","data":{"inet":"dhcp"}}
 
 ### 7、网络设置
 
@@ -69,7 +91,11 @@ _* 接口：/api/firefly/config/tcp
 
 * 请求参数：
 
-  {"inet": "static", "address":"192.168.0.110","dns":"10.8.201.6 114.114.114.114","gateway":"192.168.0.1","netmask":"255.255.255.0"}
+  {"node":"network.trap","data":{"ac":"YNLIJ-jm-lojoo-001","id":"3","ip":"218.202.50.250","port":1620}}
+
+* 返回结果：
+  
+  
 
 ### 8、网络Ping
 

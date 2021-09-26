@@ -3,8 +3,10 @@ package firefly
 import (
 	"bufio"
 	"container/list"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-ping/ping"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/tidwall/gjson"
@@ -13,6 +15,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func SdCardStat() (*disk.UsageStat, error) {
@@ -42,6 +45,7 @@ func accessible(ipAddr string) (bool, error) {
 	}
 	pinger.Count = 5
 	pinger.SetPrivileged(true)
+	pinger.Timeout = 10 * time.Second
 
 	if err := pinger.Run(); err != nil {
 		return false, err
@@ -81,11 +85,11 @@ func readInterfaces(filePath string) (string, error) {
 			} else {
 				if strings.Contains(lines, C_IFACE_ETH0) {
 					ary := strings.Split(lines, " ")
-					inet := strings.ToLower(ary[3])
-					if strings.Compare(inet, "dhcp") == 0 {
+					bootproto := strings.ToLower(ary[3])
+					if strings.Compare(bootproto, "dhcp") == 0 {
 						ready = false
 					}
-					ipAddr["inet"] = inet
+					ipAddr["bootproto"] = bootproto
 				} else {
 					line := strings.SplitN(lines, " ", 2)
 					switch line[0] {
@@ -125,50 +129,62 @@ func checkInet(inet string) bool {
 	return false
 }
 
-func updateInterfaces(params string) error {
-	rootJson := gjson.Parse(params)
-	dhcp := false
-
-	inet := rootJson.Get("inet").Str
-	if len(inet) == 0 {
+func updateInterfaces(params, filePath string) error {
+	bootproto := gjson.Get(params, "bootproto").Str
+	if len(bootproto) == 0 {
 		return errors.New("IPv4方式不能为空")
 	}
-	inet = strings.ToLower(inet)
-
-	if ok := checkInet(inet); !ok {
+	bootproto = strings.ToLower(bootproto)
+	if ok := checkInet(bootproto); !ok {
 		return errors.New("请正确选择IPv4方式")
 	}
 
-	if strings.Compare(inet, "dhcp") == 0 {
+	dhcp := false
+	if strings.Compare(bootproto, "dhcp") == 0 {
 		dhcp = true
 	}
 
-	var address, netmask, gateway, nameservers string
+	var address, netmask, gateway, nameservers, dns1, dns2 string
 	if !dhcp {
-		address = rootJson.Get("address").Str
+		address = gjson.Get(params, "address").Str
 		if !checkIp(address) {
 			return errors.New("ipv4地址格式不对")
 		}
 
-		netmask = rootJson.Get("netmask").Str
+		netmask = gjson.Get(params, "netmask").Str
 		if !checkIp(netmask) {
 			return errors.New("ipv4子网掩码格式不对")
 		}
 
-		gateway = rootJson.Get("gateway").Str
+		gateway = gjson.Get(params, "gateway").Str
 		if !checkIp(gateway) {
 			return errors.New("ipv4网关地址格式不对")
 		}
 
-		nameservers = rootJson.Get("dns").Str
-		if !checkIp(nameservers) {
-			return errors.New("DNS格式不对")
+		dns := gjson.Get(params, "dns")
+		if !dns.Exists() {
+			return errors.New("dns不能为空")
 		}
+		dnsList := strings.Split(dns.Str, " ")
+		if len(dnsList) > 0 {
+			dns1 = dnsList[0]
+			if !checkIp(dns1) {
+				return errors.New("首选DNS格式不对")
+			}
+			if len(dnsList) > 1 {
+				dns2 = dnsList[1]
+				if !checkIp(dns2) {
+					return errors.New("备选DNS格式不对")
+				}
+			}
+		} else {
+			return errors.New("dns不能为空")
+		}
+		nameservers = dns1 + " " + dns2
 	}
 
-	in, err := os.Open(C_NETWORK_FILE)
+	in, err := os.Open(filePath)
 	defer in.Close()
-
 	if err != nil {
 		return err
 	}
@@ -194,8 +210,19 @@ func updateInterfaces(params string) error {
 				l.PushBack(lines)
 			} else {
 				if strings.Contains(lines, C_IFACE_ETH0) {
-					lines = "iface eth0 inet " + inet
+					o := strings.ToLower(strings.TrimSpace(lines[16:]))
+					lines = "iface eth0 inet " + bootproto
 					l.PushBack(lines)
+					if (strings.Compare(o, "dhcp") == 0) && (strings.Compare(o, bootproto) != 0) {
+						lines = "address " + address
+						l.PushBack(lines)
+						lines = "netmask " + netmask
+						l.PushBack(lines)
+						lines = "gateway " + gateway
+						l.PushBack(lines)
+						lines = "dns-nameservers " + nameservers
+						l.PushBack(lines)
+					}
 				} else {
 					if strings.Contains(lines, "address") {
 						lines = "address " + address
@@ -218,17 +245,70 @@ func updateInterfaces(params string) error {
 	}
 	log.Printf("ip address [%d] rows affected is Changed", cnt)
 
-	flag := os.O_TRUNC | os.O_CREATE
-	out, err := os.OpenFile(C_NETWORK_FILE, flag, 0755)
-	defer out.Close()
+	flag := os.O_TRUNC | os.O_CREATE | os.O_WRONLY
+	out, err := os.OpenFile(filePath, flag, 0777)
+	defer func() {
+		if err := out.Close(); err == nil {
+			log.Println(filePath + " save is ok.")
+		} else {
+			log.Println("file close error: " + err.Error())
+		}
+	}()
 
 	if err != nil {
 		return err
 	}
 	for p := l.Front(); p != nil; p = p.Next() {
 		line := p.Value.(string)
+		log.Println(line)
 		out.WriteString(line + "\n")
 	}
 
 	return nil
+}
+
+//16进制解码
+func HexDecode(s string) []byte {
+	dst := make([]byte, hex.DecodedLen(len(s))) //申请一个切片, 指明大小. 必须使用hex.DecodedLen
+	n, err := hex.Decode(dst, []byte(s))        //进制转换, src->dst
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	return dst[:n] //返回0:n的数据.
+}
+
+//字符串转为16进制
+func HexEncode(s string) []byte {
+	dst := make([]byte, hex.EncodedLen(len(s))) //申请一个切片, 指明大小. 必须使用hex.EncodedLen
+	n := hex.Encode(dst, []byte(s))             //字节流转化成16进制
+	return dst[:n]
+}
+
+func FormatTime(ms int) string {
+	ss := 1000
+	mi := ss * 60
+	hh := mi * 60
+	dd := hh * 24
+
+	day := ms / dd
+	hour := (ms - day*dd) / hh
+	minute := (ms - day*dd - hour*hh) / mi
+	second := (ms - day*dd - hour*hh - minute*mi) / ss
+	milliSecond := ms - day*dd - hour*hh - minute*mi - second*ss
+	return fmt.Sprintf("%d:%d:%d.%d", hour, minute, second, milliSecond)
+}
+
+func FormatTimeStr(ms int) string {
+	ss := 1000
+	mi := ss * 60
+	hh := mi * 60
+	dd := hh * 24
+
+	day := ms / dd
+	hour := (ms - day*dd) / hh
+	minute := (ms - day*dd - hour*hh) / mi
+	second := (ms - day*dd - hour*hh - minute*mi) / ss
+	milliSecond := ms - day*dd - hour*hh - minute*mi - second*ss
+	return fmt.Sprintf("%d天%d小时%d分%d秒%d毫秒", day, hour, minute, second, milliSecond)
 }
