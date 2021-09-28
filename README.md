@@ -20,7 +20,7 @@ firefly plugin for monibuca
   
   {"code":500,"msg":"用户名或密码错误,请重新输入","data":null}
 
-### 2、登陆
+### 2、刷新
 
 * 接口：/api/firefly/refresh
 
@@ -184,32 +184,8 @@ _* 接口：/api/firefly/config/tcp
 
   {"code":500,"msg":"error","data":null}
 
-### 13、将某个flv文件读取并发布成一个直播流
 
-* 接口：/api/record/play
-
-* 请求方式：GET
-
-* 请求参数：
-
-| 字段  | 类型   | 说明   |
-|------|------: | :-----|
-| streamPath | string  | 文件名|
-
-### 14、删除某个flv文件
-
-* 接口：/api/record/delete
-
-* 请求方式：GET
-
-* 请求参数：
-
-| 字段  | 类型   | 说明   |
-|------|------: | :-----|
-| streamPath | string  | 文件名 |
-
-
-### 15、查看SD卡信息
+### 13、查看SD卡信息
 
 * 接口：/api/firefly/storage
 
