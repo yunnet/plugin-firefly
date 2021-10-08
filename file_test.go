@@ -2,7 +2,6 @@ package firefly
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,38 +26,53 @@ func Test_Flv_filename(t *testing.T) {
 
 }
 
-func Test_file(t *testing.T) {
+func Test_flv_file(t *testing.T) {
 	filePaths := "D:/work-go/monibuca/resource/live/hk/2021/09/24/143046.flv"
 
-	s := getYearMonthDay(filePaths)
-	y := s[0:7]
+	s := filePaths[len(filePaths)-21 : len(filePaths)-4]
 	t.Log(s)
-	t.Log(y)
+
+	l, _ := time.LoadLocation("Local")
+	tmp, _ := time.ParseInLocation("2006/01/02/150405", s, l)
+	timestamp := tmp.Unix()
+	t.Log(timestamp)
+}
+
+func Test_mp4_file(t *testing.T) {
+	filePaths := "D:/mnt/sd/record/live/hw/2021-09-27/18-07-25.mp4"
+
+	s := filePaths[len(filePaths)-23 : len(filePaths)-4]
+	t.Log(s)
+
+	l, _ := time.LoadLocation("Local")
+	tmp, _ := time.ParseInLocation("2006-01-02/15-04-05", s, l)
+	timestamp := tmp.Unix()
+	t.Log(timestamp)
 }
 
 func Test_List_file(t *testing.T) {
-	filePaths := "D:/work-go/monibuca/resource"
-	month := "2021-09"
-
-	if files, err := tree(filePaths, 0); err == nil {
-		var m = make(map[string][]*FlvFileInfo)
-		for i := 0; i < len(files); i++ {
-			f := files[i]
-			day := getYearMonthDay(f.Path) //2021-09
-			y := day[0:7]
-			if strings.Compare(y, month) == 0 {
-				array, _ := m[day]
-				array = append(array, f)
-				m[day] = array
-			}
-		}
-
-		j, _ := json.Marshal(m)
-		t.Log(j)
-
-		t.Log(m)
-
-	}
+	//filePaths := "D:/work-go/monibuca/resource"
+	//month := "2021-09"
+	//
+	//if files, err := tree(filePaths, 0); err == nil {
+	//	var m = make(map[string][]*RecFileInfo)
+	//	for i := 0; i < len(files); i++ {
+	//		f := files[i]
+	//		day := getYearMonthDay(f.Path) //2021-09
+	//		y := day[0:7]
+	//		if strings.Compare(y, month) == 0 {
+	//			array, _ := m[day]
+	//			array = append(array, f)
+	//			m[day] = array
+	//		}
+	//	}
+	//
+	//	j, _ := json.Marshal(m)
+	//	t.Log(j)
+	//
+	//	t.Log(m)
+	//
+	//}
 }
 
 func Test_StringHex(t *testing.T) {

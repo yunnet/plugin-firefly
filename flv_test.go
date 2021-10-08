@@ -2,6 +2,7 @@ package firefly
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/Monibuca/utils/v3/codec"
 	amf "github.com/zhangpeihao/goamf"
@@ -139,4 +140,16 @@ func Test_time(t *testing.T) {
 	t.Logf("%d天%d小时%d分%d秒%d毫秒", day, hour, minute, second, milliSecond)
 
 	t.Logf("%d:%d:%d.%d", hour, minute, second, milliSecond)
+}
+
+func Test_Flv_file_info(t *testing.T) {
+	filePaths := "D:/work-go/monibuca/resource/live/hk/2021/09/24/143046.flv"
+
+	f, err := getRecFileInfo(filePaths, "2021-09-29")
+	if err != nil {
+		t.Log(err)
+	}
+
+	j, _ := json.Marshal(f)
+	t.Log(string(j))
 }

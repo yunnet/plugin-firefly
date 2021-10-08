@@ -156,7 +156,9 @@ func SaveFlv(streamPath string, isAppend bool) error {
 			log.Printf("::::::::::::::::::file close::::::::::::::::")
 			file.Close()
 
-			go transferFlv(filePath)
+			if config.FlvMeta {
+				go transferFlv(filePath)
+			}
 		}()
 	}
 	return err

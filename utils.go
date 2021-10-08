@@ -12,6 +12,7 @@ import (
 	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -285,6 +286,10 @@ func HexEncode(s string) []byte {
 	return dst[:n]
 }
 
+func UnixTimeFormat(path int64) string {
+	return time.Unix(path, 0).Format("2006-01-02")
+}
+
 func FormatTime(ms int) string {
 	ss := 1000
 	mi := ss * 60
@@ -311,4 +316,19 @@ func FormatTimeStr(ms int) string {
 	second := (ms - day*dd - hour*hh - minute*mi) / ss
 	milliSecond := ms - day*dd - hour*hh - minute*mi - second*ss
 	return fmt.Sprintf("%d天%d小时%d分%d秒%d毫秒", day, hour, minute, second, milliSecond)
+}
+
+func httpGet(url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	log.Println(string(body))
+	return nil
 }

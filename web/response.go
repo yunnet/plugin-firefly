@@ -8,25 +8,23 @@ type Response struct {
 	Data interface{} `json:"data"`
 }
 
-func (c *Response) WithMsg(message string) Response {
-	return Response{c.Code, message, c.Data}
+func (c Response) WithCode(code int) Response {
+	c.Code = code
+	return c
 }
 
-func (c *Response) WithData(data interface{}) Response {
-	return Response{c.Code, c.Msg, data}
+func (c Response) WithMsg(msg string) Response {
+	c.Msg = msg
+	return c
+}
+
+func (c Response) WithData(data interface{}) Response {
+	c.Data = data
+	return c
 }
 
 func (c *Response) Raw() []byte {
-	s := &struct {
-		Code int         `json:"code"`
-		Msg  string      `json:"msg"`
-		Data interface{} `json:"data"`
-	}{
-		Code: c.Code,
-		Msg:  c.Msg,
-		Data: c.Data,
-	}
-	raw, _ := json.Marshal(s)
+	raw, _ := json.Marshal(c)
 	return raw
 }
 
@@ -34,6 +32,6 @@ func (c *Response) String() string {
 	return string(c.Raw())
 }
 
-func response(code int, message string) *Response {
-	return &Response{Code: code, Msg: message, Data: nil}
+func response(code int, msg string) *Response {
+	return &Response{Code: code, Msg: msg, Data: nil}
 }

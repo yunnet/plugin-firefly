@@ -3,14 +3,15 @@ module github.com/yunnet/plugin-firefly
 go 1.17
 
 replace (
-github.com/Monibuca/engine/v3 v3.3.4 => ../engine
-github.com/Monibuca/utils/v3 v3.0.2 => ../utils
+	github.com/Monibuca/engine/v3 v3.3.4 => ../engine
+	github.com/Monibuca/utils/v3 v3.0.2 => ../utils
 )
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/Monibuca/engine/v3 v3.3.4
 	github.com/Monibuca/utils/v3 v3.0.2
+	github.com/bluele/gcache v0.0.2
 	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/funny/slab v0.0.0-20180511031532-b1fad5e5d478 // indirect

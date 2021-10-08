@@ -1,6 +1,8 @@
 package firefly
 
 import (
+	"encoding/json"
+	"errors"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
 	result "github.com/yunnet/plugin-firefly/web"
@@ -14,15 +16,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bluele/gcache"
 	"github.com/jasonlvhit/gocron"
 )
 
-var recordings sync.Map
+var (
+	recordings sync.Map
+	gc         gcache.Cache
+)
 
-type FlvFileInfo struct {
-	Path     string
-	Size     int64
-	Duration uint32
+type RecFileInfo struct {
+	Url       string `json:"url"`
+	Size      int64  `json:"size"`
+	Timestamp int64  `json:"timestamp"`
+	Duration  uint32 `json:"duration"`
+}
+
+func (c *RecFileInfo) String() string {
+	res, _ := json.Marshal(c)
+	return string(res)
 }
 
 type FileWr interface {
@@ -38,8 +50,11 @@ var ExtraConfig struct {
 }
 
 func RunRecord() {
-	go AddHook(HOOK_PUBLISH, onPublish)
 	os.MkdirAll(config.SavePath, 0755)
+
+	gc = gcache.New(100).LRU().Build()
+
+	go AddHook(HOOK_PUBLISH, onPublish)
 
 	http.HandleFunc("/vod/", vodHandler)
 	http.HandleFunc("/api/record/list", listHandler)
@@ -48,19 +63,19 @@ func RunRecord() {
 	http.HandleFunc("/api/record/play", playHandler)
 	http.HandleFunc("/api/record/delete", deleteHandler)
 
-	if config.SliceStorage {
-		s := gocron.NewScheduler()
-		//s.Every(3).Minute().Do(task)
-		//s.Every(1).Hour().Do(doTask)
-		m := config.SliceTime
-		if m < 5 {
-			m = 5
-			log.Printf("record at least %d minutes.", m)
-		}
-		log.Printf("the current recording is set to %d minutes.", m)
+	if config.AutoRecord {
+		if config.SliceStorage {
+			m := config.SliceTime
+			if m < 5 {
+				m = 5
+				log.Printf("record at least %d minutes.", m)
+			}
+			log.Printf("the current recording is set to %d minutes.", m)
 
-		s.Every(uint64(m)).Minute().Do(doTask)
-		<-s.Start()
+			s := gocron.NewScheduler()
+			s.Every(uint64(m)).Minute().Do(doTask)
+			<-s.Start()
+		}
 	}
 }
 
@@ -95,7 +110,7 @@ func freeDisk() {
 			return err
 		}
 		ext := strings.ToLower(filepath.Ext(itemPath))
-		if ext == ".flv" || ext == ".FLV" {
+		if ext == ".flv" || ext == ".mp4" {
 			files = append(files, itemPath)
 		}
 		return nil
@@ -215,48 +230,70 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func tree(dstPath string, level int) (files []*FlvFileInfo, err error) {
-	var dstF *os.File
-	dstF, err = os.Open(dstPath)
-	if err != nil {
-		return
-	}
-	defer dstF.Close()
-	fileInfo, err := dstF.Stat()
-	if err != nil {
-		return
-	}
-	if !fileInfo.IsDir() { //如果dstF是文件
-		if path.Ext(fileInfo.Name()) == ".flv" {
-			p := strings.TrimPrefix(dstPath, config.SavePath)
-			p = strings.ReplaceAll(p, "\\", "/")
-			files = append(files, &FlvFileInfo{
-				Path:     strings.TrimPrefix(p, "/"),
-				Size:     fileInfo.Size(),
-				Duration: getDuration(dstF),
-			})
-		}
-		return
-	} else { //如果dstF是文件夹
-		var dir []os.FileInfo
-		dir, err = dstF.Readdir(0) //获取文件夹下各个文件或文件夹的fileInfo
+func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
+	p := strings.TrimPrefix(dstPath, config.SavePath)
+	p = strings.ReplaceAll(p, "\\", "/")
+
+	if strings.Contains(p, findDay) {
+		var f *os.File
+		f, err = os.Open(dstPath)
 		if err != nil {
-			return
+			return nil, err
 		}
-		for _, fileInfo = range dir {
-			var _files []*FlvFileInfo
-			_files, err = tree(filepath.Join(dstPath, fileInfo.Name()), level+1)
-			if err != nil {
-				return
+		defer f.Close()
+
+		fileInfo, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := gc.Get(fileInfo.Name())
+		if err != nil {
+			if path.Ext(fileInfo.Name()) == ".flv" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: getFlvTimestamp(p),
+					Duration:  getDuration(f),
+				}
+			} else if path.Ext(fileInfo.Name()) == ".mp4" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: getMp4Timestamp(p),
+					Duration:  GetMP4Duration(f),
+				}
 			}
-			files = append(files, _files...)
+			gc.SetWithExpire(fileInfo.Name(), recFile, time.Hour*12)
+		} else {
+			recFile, _ = (value).(*RecFileInfo)
 		}
-		return
+		return recFile, nil
 	}
+	return nil, errors.New("日期不匹配")
 }
 
-func getYearMonthDay(path string) string {
-	return strings.ReplaceAll(path[len(path)-21:len(path)-11], "/", "-")
+//live/hk/2021/09/24/143046.flv
+func getFlvTimestamp(path string) int64 {
+	return getTimestamp(path, 21, 4, "2006/01/02/150405")
+}
+
+//live/hw/2021-09-27/18-07-25.mp4
+func getMp4Timestamp(path string) int64 {
+	return getTimestamp(path, 23, 4, "2006-01-02/15-04-05")
+}
+
+func getTimestamp(path string, start, end int, layout string) int64 {
+	s := path[len(path)-start : len(path)-end]
+	l, err := time.LoadLocation("Local")
+	if err != nil {
+		return 0
+	}
+	tmp, err := time.ParseInLocation(layout, s, l)
+	if err != nil {
+		return 0
+	}
+	return tmp.Unix()
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
@@ -265,29 +302,36 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	month := r.URL.Query().Get("month")
-	if month == "" {
-		res := result.Err.WithMsg("年月不能为空")
+	findDay := r.URL.Query().Get("today")
+	if findDay == "" {
+		res := result.Err.WithMsg("日期不能为空")
 		w.Write(res.Raw())
 		return
 	}
 
-	if files, err := tree(config.SavePath, 0); err == nil {
-		var m = make(map[string][]*FlvFileInfo)
-		for i := 0; i < len(files); i++ {
-			f := files[i]
-			day := getYearMonthDay(f.Path) //2021-09
-			y := day[0:7]
-			if strings.Compare(y, month) == 0 {
-				array, _ := m[day]
-				array = append(array, f)
-				m[day] = array
+	var files []*RecFileInfo
+	walkFunc := func(itemPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		ext := strings.ToLower(filepath.Ext(itemPath))
+		if ext == ".flv" || ext == ".mp4" {
+			var f *RecFileInfo
+			if f, err = getRecFileInfo(itemPath, findDay); err == nil {
+				files = append(files, f)
 			}
 		}
-		res := result.OK.WithData(m)
-		w.Write(res.Raw())
-	} else {
-		res := result.Err.WithMsg(err.Error())
-		w.Write(res.Raw())
+		return nil
+	}
+
+	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
+		if len(files) != 0 {
+			res := result.OK.WithData(files)
+			w.Write(res.Raw())
+		} else {
+			res := result.OK.WithData([]interface{}{})
+			w.Write(res.Raw())
+		}
+
 	}
 }
