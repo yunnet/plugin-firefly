@@ -14,6 +14,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -331,4 +333,141 @@ func httpGet(url string) error {
 
 	log.Println(string(body))
 	return nil
+}
+
+//live/hk/2021/09/24/143046.flv
+func getFlvTimestamp(path string) int64 {
+	return getTimestamp(path, 21, 4, "2006/01/02/150405")
+}
+
+//live/hw/2021-09-27/18-07-25.mp4
+func getMp4Timestamp(path string) int64 {
+	return getTimestamp(path, 23, 4, "2006-01-02/15-04-05")
+}
+
+func getTimestamp(path string, start, end int, layout string) int64 {
+	s := path[len(path)-start : len(path)-end]
+	l, err := time.LoadLocation("Local")
+	if err != nil {
+		return 0
+	}
+	tmp, err := time.ParseInLocation(layout, s, l)
+	if err != nil {
+		return 0
+	}
+	return tmp.Unix()
+}
+
+func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
+	p := strings.TrimPrefix(dstPath, config.SavePath)
+	p = strings.ReplaceAll(p, "\\", "/")
+
+	if strings.Contains(p, findDay) {
+		_, file := path.Split(p)
+		if file[0:1] == "." {
+			return nil, errors.New("temp file " + file)
+		}
+
+		value, err := gc.Get(file)
+		if err != nil {
+			var f *os.File
+			f, err = os.Open(dstPath)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+
+			fileInfo, err := f.Stat()
+			if err != nil {
+				return nil, err
+			}
+
+			ext := strings.ToLower(filepath.Ext(fileInfo.Name()))
+			if ext == ".flv" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: getFlvTimestamp(p),
+					Duration:  getDuration(f),
+				}
+			} else if ext == ".mp4" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: getMp4Timestamp(p),
+					Duration:  GetMP4Duration(f),
+				}
+			}
+			gc.SetWithExpire(fileInfo.Name(), recFile, time.Hour*12)
+		} else {
+			recFile, _ = (value).(*RecFileInfo)
+		}
+		return recFile, nil
+	}
+	return nil, errors.New("日期不匹配")
+}
+
+func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo, err error) {
+	p := strings.TrimPrefix(dstPath, config.SavePath)
+	p = strings.ReplaceAll(p, "\\", "/")
+	log.Printf("file path = %s", p)
+
+	_, file := path.Split(p)
+	if file[0:1] == "." {
+		return nil, errors.New("temp file " + file)
+	}
+
+	ext := strings.ToLower(path.Ext(file))
+	var timestamp int64
+	if ext == ".flv" {
+		timestamp = getFlvTimestamp(p)
+	} else if ext == ".mp4" {
+		timestamp = getMp4Timestamp(p)
+	} else {
+		return nil, errors.New("file ")
+	}
+
+	//t := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+	//b := begin.Format("2006-01-02 15:04:05")
+	//e := end.Format("2006-01-02 15:04:05")
+	//log.Printf("begin = %s, end = %s, curtime = %s", b, e, t)
+
+	if timestamp >= begin.Unix() && timestamp <= end.Unix() {
+		value, err := gc.Get(timestamp)
+		if err != nil {
+			var f *os.File
+			f, err = os.Open(dstPath)
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+
+			fileInfo, err := f.Stat()
+			if err != nil {
+				return nil, err
+			}
+
+			if ext == ".flv" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: timestamp,
+					Duration:  getDuration(f),
+				}
+			} else if ext == ".mp4" {
+				recFile = &RecFileInfo{
+					Url:       strings.TrimPrefix(p, "/"),
+					Size:      fileInfo.Size(),
+					Timestamp: timestamp,
+					Duration:  GetMP4Duration(f),
+				}
+			}
+			gc.SetWithExpire(timestamp, recFile, time.Hour*12)
+		} else {
+			recFile, _ = (value).(*RecFileInfo)
+		}
+		return recFile, nil
+	}
+
+	return nil, errors.New("not found record file")
 }

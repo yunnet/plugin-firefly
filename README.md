@@ -141,11 +141,11 @@ _* 接口：/api/firefly/config/tcp
 
 | 字段  | 类型   | 说明   |
 |------|------: | :-----|
-| month | string | 2021-09 |
+| date | string | 2021-09-28 |
 
 * 返回结果：
 
-  {"code":200,"msg":"ok","data":{"2021-09-26":[{"Path":"live/hw/2021/09/26/085839.flv","Size":1286094259,"Duration":3551961},{"Path":"live/hw/2021/09/26/111013.flv","Size":1247917892,"Duration":3600000},{"Path":"live/hw/2021/09/26/101100.flv","Size":1279732115,"Duration":3552880}]}}
+  {"code":200,"msg":"ok","data":[{"url":"live/hw/2021-10-08/15-25-37.mp4","size":17413943,"timestamp":1633677937,"duration":60},{"url":"live/hw/2021-10-08/15-26-37.mp4","size":17441018,"timestamp":1633677997,"duration":60},{"url":"live/hw/2021-10-08/15-27-37.mp4","size":17194436,"timestamp":1633678057,"duration":60}]}
 
 
 ### 11、开始录制

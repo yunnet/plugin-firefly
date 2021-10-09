@@ -21,6 +21,12 @@ var (
 */
 func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfigPing {
 		NotFoundHandler(w, r)
 		return
@@ -53,6 +59,12 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfig {
 		NotFoundHandler(w, r)
 		return
@@ -84,6 +96,12 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 */
 func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "POST" {
+		res := result.Err.WithMsg("Sorry, only POST methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfigEdit {
 		NotFoundHandler(w, r)
 		return
@@ -160,6 +178,12 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 */
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfigTcp {
 		NotFoundHandler(w, r)
 		return
@@ -187,6 +211,12 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "POST" {
+		res := result.Err.WithMsg("Sorry, only POST methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfigTcpEdit {
 		NotFoundHandler(w, r)
 		return
@@ -228,6 +258,12 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 */
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyConfigStorage {
 		NotFoundHandler(w, r)
 		return

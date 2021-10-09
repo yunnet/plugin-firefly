@@ -15,6 +15,12 @@ import (
 )
 
 func refreshHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	tokenString := r.Header.Get("token")
 	newTokenString, err := jwt.RefreshToken(tokenString, config.Timeout)
 	if err != nil {
@@ -45,6 +51,12 @@ func CheckLogin(w http.ResponseWriter, r *http.Request) bool {
 
 func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if r.URL.Path != ApiFireflyReboot {
 		NotFoundHandler(w, r)
 		return
@@ -65,8 +77,14 @@ func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
+// [Get] /api/firefly/config/hi
 func hiHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
 	if r.URL.Path != ApiFireflyHi {
 		NotFoundHandler(w, r)
 		return
@@ -85,8 +103,14 @@ func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "custom 404")
 }
 
+// [Get] /api/firefly/login
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
 	requestUser := r.URL.Query().Get("username")
 	if requestUser == "" {
 		res := result.Err.WithMsg("用户名不能为空")

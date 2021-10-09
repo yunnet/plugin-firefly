@@ -1,8 +1,6 @@
 package firefly
 
 import (
-	"encoding/json"
-	"errors"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
 	result "github.com/yunnet/plugin-firefly/web"
@@ -10,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -30,11 +27,6 @@ type RecFileInfo struct {
 	Size      int64  `json:"size"`
 	Timestamp int64  `json:"timestamp"`
 	Duration  uint32 `json:"duration"`
-}
-
-func (c *RecFileInfo) String() string {
-	res, _ := json.Marshal(c)
-	return string(res)
 }
 
 type FileWr interface {
@@ -62,6 +54,7 @@ func RunRecord() {
 	http.HandleFunc("/api/record/stop", stopHandler)
 	http.HandleFunc("/api/record/play", playHandler)
 	http.HandleFunc("/api/record/delete", deleteHandler)
+	http.HandleFunc("/api/record/download", downloadHandler)
 
 	if config.AutoRecord {
 		if config.SliceStorage {
@@ -104,6 +97,11 @@ func checkDisk() {
 }
 
 func freeDisk() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("internal error: %v", err)
+		}
+	}()
 	var files []string
 	walkFunc := func(itemPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -134,6 +132,12 @@ func onPublish(p *Stream) {
 func vodHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	streamPath := r.RequestURI[5:]
 	filePath := filepath.Join(config.SavePath, streamPath)
 	if file, err := os.Open(filePath); err == nil {
@@ -147,6 +151,13 @@ func vodHandler(w http.ResponseWriter, r *http.Request) {
 
 func playHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -167,6 +178,13 @@ func playHandler(w http.ResponseWriter, r *http.Request) {
 
 func stopHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -187,6 +205,13 @@ func stopHandler(w http.ResponseWriter, r *http.Request) {
 
 func startHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -206,6 +231,13 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
@@ -230,95 +262,40 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
-	p := strings.TrimPrefix(dstPath, config.SavePath)
-	p = strings.ReplaceAll(p, "\\", "/")
-
-	if strings.Contains(p, findDay) {
-		var f *os.File
-		f, err = os.Open(dstPath)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-
-		fileInfo, err := f.Stat()
-		if err != nil {
-			return nil, err
-		}
-
-		value, err := gc.Get(fileInfo.Name())
-		if err != nil {
-			if path.Ext(fileInfo.Name()) == ".flv" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: getFlvTimestamp(p),
-					Duration:  getDuration(f),
-				}
-			} else if path.Ext(fileInfo.Name()) == ".mp4" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: getMp4Timestamp(p),
-					Duration:  GetMP4Duration(f),
-				}
-			}
-			gc.SetWithExpire(fileInfo.Name(), recFile, time.Hour*12)
-		} else {
-			recFile, _ = (value).(*RecFileInfo)
-		}
-		return recFile, nil
-	}
-	return nil, errors.New("日期不匹配")
-}
-
-//live/hk/2021/09/24/143046.flv
-func getFlvTimestamp(path string) int64 {
-	return getTimestamp(path, 21, 4, "2006/01/02/150405")
-}
-
-//live/hw/2021-09-27/18-07-25.mp4
-func getMp4Timestamp(path string) int64 {
-	return getTimestamp(path, 23, 4, "2006-01-02/15-04-05")
-}
-
-func getTimestamp(path string, start, end int, layout string) int64 {
-	s := path[len(path)-start : len(path)-end]
-	l, err := time.LoadLocation("Local")
-	if err != nil {
-		return 0
-	}
-	tmp, err := time.ParseInLocation(layout, s, l)
-	if err != nil {
-		return 0
-	}
-	return tmp.Unix()
-}
-
 func listHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
 	if isOk := CheckLogin(w, r); !isOk {
 		return
 	}
 
-	findDay := r.URL.Query().Get("today")
-	if findDay == "" {
+	day := r.URL.Query().Get("date")
+	if day == "" {
 		res := result.Err.WithMsg("日期不能为空")
 		w.Write(res.Raw())
 		return
 	}
 
 	var files []*RecFileInfo
-	walkFunc := func(itemPath string, info os.FileInfo, err error) error {
+	walkFunc := func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		ext := strings.ToLower(filepath.Ext(itemPath))
+		ext := strings.ToLower(filepath.Ext(filePath))
 		if ext == ".flv" || ext == ".mp4" {
-			var f *RecFileInfo
-			if f, err = getRecFileInfo(itemPath, findDay); err == nil {
+			t := time.Now()
+			if f, err := getRecFileInfo(filePath, day); err == nil {
 				files = append(files, f)
+			}
+			spend := time.Since(t).Seconds()
+			if spend > 10 {
+				log.Printf("spend: %fms", spend)
 			}
 		}
 		return nil
@@ -332,6 +309,74 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 			res := result.OK.WithData([]interface{}{})
 			w.Write(res.Raw())
 		}
+	}
+}
 
+func downloadHandler(w http.ResponseWriter, r *http.Request) {
+	CORS(w, r)
+
+	if r.Method != "GET" {
+		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		w.Write(res.Raw())
+		return
+	}
+
+	if isOk := CheckLogin(w, r); !isOk {
+		return
+	}
+
+	beginStr := r.URL.Query().Get("begin")
+	if beginStr == "" {
+		res := result.Err.WithMsg("开始日期不能为空")
+		w.Write(res.Raw())
+		return
+	}
+	begin, err := time.Parse("2006-01-02 15:04:05", beginStr)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	endStr := r.URL.Query().Get("end")
+	if endStr == "" {
+		res := result.Err.WithMsg("结束日期不能为空")
+		w.Write(res.Raw())
+		return
+	}
+	end, err := time.Parse("2006-01-02 15:04:05", endStr)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	var files []*RecFileInfo
+	walkFunc := func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		ext := strings.ToLower(filepath.Ext(filePath))
+		if ext == ".flv" || ext == ".mp4" {
+			t := time.Now()
+			if f, err := getRecFileRange(filePath, begin, end); err == nil {
+				files = append(files, f)
+			}
+			spend := time.Since(t).Seconds()
+			if spend > 10 {
+				log.Printf("spend: %fms", spend)
+			}
+		}
+		return nil
+	}
+
+	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
+		if len(files) != 0 {
+			res := result.OK.WithData(files)
+			w.Write(res.Raw())
+		} else {
+			res := result.OK.WithData([]interface{}{})
+			w.Write(res.Raw())
+		}
 	}
 }

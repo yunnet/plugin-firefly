@@ -56,8 +56,8 @@ func init() {
 	})
 }
 
-func zLinit() {
-	var pullStreamUrl = "http://10.8.76.197/index/api/addFFmpegSource?src_url=" + config.SourceUrl + "&dst_url=rtsp://10.8.76.197/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+func ZLMediaKit() {
+	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + config.SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 	var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 	log.Println("pullStreamUrl = " + pullStreamUrl)
 
@@ -80,7 +80,7 @@ func run(ctx context.Context) {
 	os.MkdirAll(config.Path, 0755)
 
 	if config.Model == "ZL" {
-		zLinit()
+		ZLMediaKit()
 	}
 
 	//hi
