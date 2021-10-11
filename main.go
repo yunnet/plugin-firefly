@@ -10,18 +10,15 @@ import (
 )
 
 const (
-	C_SALT = "never cast aside and never give up"
-
-	C_JSON_FILE = "firefly.json"
-	C_MNT_SD    = "/mnt/sd"
-
-	C_AUTO_ETH0    = "auto eth0"
-	C_IFACE_ETH0   = "iface eth0"
-	C_NETWORK_FILE = "/etc/network/interfaces"
-	//C_NETWORK_FILE = "/interfaces"
-
-	C_DISK_SPACE_THRESHOLD = 80.00
-
+	C_PID_FILE              = "gonne.lock"
+	C_SALT                  = "never cast aside and never give up"
+	C_JSON_FILE             = "firefly.json"
+	C_MNT_SD                = "/mnt/sd"
+	C_AUTO_ETH0             = "auto eth0"
+	C_IFACE_ETH0            = "iface eth0"
+	C_NETWORK_FILE          = "/etc/network/interfaces"
+	C_DISK_SPACE_THRESHOLD  = 80.00
+	YYYY_MM_DD_HH_MM_SS     = "2006-01-02 15:04:05"
 	ApiFireflyHi            = "/api/firefly/hi"
 	ApiFireflyLogin         = "/api/firefly/login"
 	ApiFireflyRefresh       = "/api/firefly/refresh"
@@ -32,6 +29,8 @@ const (
 	ApiFireflyConfigTcpEdit = "/api/firefly/config/tcp/edit"
 	ApiFireflyConfigPing    = "/api/firefly/config/ping"
 	ApiFireflyConfigStorage = "/api/firefly/storage"
+
+	//C_NETWORK_FILE = "/interfaces"
 )
 
 var config struct {
@@ -66,21 +65,13 @@ func init() {
 
 func ZLMediaKit() {
 	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + config.SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-	//var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 	log.Println("pullStreamUrl = " + pullStreamUrl)
 
 	err := httpGet(pullStreamUrl)
 	if err != nil {
-		log.Printf("pull stream url [%s] error. %s \n", pullStreamUrl, err.Error())
+		log.Printf("pull stream url error. %s \n", err.Error())
 	} else {
-		log.Printf("pull steam ok.[%s]\n", pullStreamUrl)
-
-		//err := httpGet(recordUrl)
-		//if err != nil {
-		//	log.Printf("record url [%s] error. %s \n", recordUrl, err.Error())
-		//} else {
-		//	log.Printf("record ok.[%s]\n", recordUrl)
-		//}
+		log.Println("pull steam ok")
 	}
 }
 
@@ -117,6 +108,14 @@ func run(ctx context.Context) {
 
 	//storage
 	http.HandleFunc(ApiFireflyConfigStorage, storageHandler)
+
+	http.HandleFunc("/vod/", vodHandler)
+	http.HandleFunc("/api/record/list", listHandler)
+	http.HandleFunc("/api/record/start", startHandler)
+	http.HandleFunc("/api/record/stop", stopHandler)
+	http.HandleFunc("/api/record/play", playHandler)
+	http.HandleFunc("/api/record/delete", deleteHandler)
+	http.HandleFunc("/api/record/download", downloadHandler)
 
 	RunRecord()
 

@@ -3,6 +3,7 @@ package firefly
 import (
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
+	"github.com/jasonlvhit/gocron"
 	result "github.com/yunnet/plugin-firefly/web"
 	"io"
 	"log"
@@ -15,12 +16,13 @@ import (
 	"time"
 
 	"github.com/bluele/gcache"
-	"github.com/jasonlvhit/gocron"
 )
 
 var (
 	recordings sync.Map
 	gc         gcache.Cache
+	gCnt       int
+	sliceTime  int
 )
 
 type RecFileInfo struct {
@@ -43,57 +45,54 @@ var ExtraConfig struct {
 }
 
 func RunRecord() {
+	if config.AutoRecord {
+		gCnt = 0
+		sliceTime = int(config.SliceTime)
+		if sliceTime < 5 {
+			sliceTime = 5
+			log.Printf("record at least %d minutes.", sliceTime)
+		}
+	}
+
 	os.MkdirAll(config.SavePath, 0755)
 
 	gc = gcache.New(100).LRU().Build()
 
 	go AddHook(HOOK_PUBLISH, onPublish)
 
-	http.HandleFunc("/vod/", vodHandler)
-	http.HandleFunc("/api/record/list", listHandler)
-	http.HandleFunc("/api/record/start", startHandler)
-	http.HandleFunc("/api/record/stop", stopHandler)
-	http.HandleFunc("/api/record/play", playHandler)
-	http.HandleFunc("/api/record/delete", deleteHandler)
-	http.HandleFunc("/api/record/download", downloadHandler)
-
-	if config.AutoRecord {
-		if config.SliceStorage {
-			m := config.SliceTime
-			if m < 5 {
-				m = 5
-				log.Printf("record at least %d minutes.", m)
-			}
-			log.Printf("the current recording is set to %d minutes.", m)
-
-			s := gocron.NewScheduler()
-			s.Every(uint64(m)).Minute().Do(doTask)
-			<-s.Start()
-		}
-	}
+	s := gocron.NewScheduler()
+	s.Every(1).Minute().Do(doTask)
+	<-s.Start()
 }
 
 func doTask() {
-	log.Printf("at %s task...", time.Now().Format("2006-01-02 15:04:05"))
+	log.Printf("at %s scheduler...", time.Now().Format(YYYY_MM_DD_HH_MM_SS))
 
-	checkDisk()
-
-	recordings.Range(func(key, value interface{}) bool {
-		streamPath := key.(string)
-		StopFlv(streamPath)
-
-		SaveFlv(streamPath, false)
-		return true
-	})
-}
-
-func checkDisk() {
 	for {
 		percent, _ := getSdCardUsedPercent()
 		if percent < C_DISK_SPACE_THRESHOLD {
 			break
 		}
 		freeDisk()
+	}
+
+	if config.AutoRecord {
+		if config.SliceStorage {
+			gCnt++
+			if gCnt >= sliceTime {
+				log.Printf("the current recording is set to %d minutes.", sliceTime)
+
+				recordings.Range(func(key, value interface{}) bool {
+					streamPath := key.(string)
+					StopFlv(streamPath)
+
+					SaveFlv(streamPath, false)
+					return true
+				})
+
+				gCnt = 0
+			}
+		}
 	}
 }
 
@@ -343,13 +342,13 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	begin, err := time.Parse("2006-01-02 15:04:05", beginStr)
+	begin, err := time.Parse(YYYY_MM_DD_HH_MM_SS, beginStr)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
 		return
 	}
-	end, err := time.Parse("2006-01-02 15:04:05", endStr)
+	end, err := time.Parse(YYYY_MM_DD_HH_MM_SS, endStr)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
@@ -364,27 +363,4 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		res := result.OK.WithData([]interface{}{})
 		w.Write(res.Raw())
 	}
-}
-
-func getRecords(begin, end time.Time) (files []*RecFileInfo, err error) {
-	walkFunc := func(filePath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		ext := strings.ToLower(filepath.Ext(filePath))
-		if ext == ".flv" || ext == ".mp4" {
-			t := time.Now()
-			if f, err := getRecFileRange(filePath, begin, end); err == nil {
-				files = append(files, f)
-			}
-			spend := time.Since(t).Seconds()
-			if spend > 10 {
-				log.Printf("spend: %fms", spend)
-			}
-		}
-		return nil
-	}
-
-	err = filepath.Walk(config.SavePath, walkFunc)
-	return
 }

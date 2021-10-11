@@ -45,8 +45,6 @@ var (
 	topic     string
 )
 
-const C_PID_FILE = "gonne.lock"
-
 func runMQTT(ctx context.Context) {
 	c, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -203,11 +201,20 @@ func handleData(client libmqtt.Client, topic, msg string) {
 		}
 	case "record":
 		getRecordFiles(client, msg)
-	case "upload":
 
+	case "upload":
+		{
+			file := gjson.Get(msg, "file")
+			uploadFile(file.Str)
+		}
 	default:
 		log.Printf("command error %s", commandNode.String())
 	}
+}
+
+//指令：{"command": "upload", "file": "live/hw/2021-10-09/15-38-05.mp4"}
+func uploadFile(file string) {
+
 }
 
 //指令：{"command": "record", "begin": "2021-10-11 00:00:00", "end": "2021-10-11 23:59:59"}
@@ -220,14 +227,14 @@ func getRecordFiles(client libmqtt.Client, data string) {
 
 	var begin, end time.Time
 
-	begin, err = time.Parse("2006-01-02 15:04:05", beginStr)
+	begin, err = time.Parse(YYYY_MM_DD_HH_MM_SS, beginStr)
 	if err != nil {
 		payload := "开始日期错误 " + err.Error()
 		publish(client, payload)
 		return
 	}
 
-	end, err = time.Parse("2006-01-02 15:04:05", endStr)
+	end, err = time.Parse(YYYY_MM_DD_HH_MM_SS, endStr)
 	if err != nil {
 		payload := "开始日期错误 " + err.Error()
 		publish(client, payload)

@@ -64,11 +64,10 @@ func accessible(ipAddr string) (bool, error) {
 
 func readInterfaces(filePath string) (string, error) {
 	f, err := os.Open(filePath)
-	defer f.Close()
-
 	if err != nil {
 		return "", nil
 	}
+	defer f.Close()
 
 	s := bufio.NewScanner(f)
 	ready := false
@@ -187,10 +186,10 @@ func updateInterfaces(params, filePath string) error {
 	}
 
 	in, err := os.Open(filePath)
-	defer in.Close()
 	if err != nil {
 		return err
 	}
+	defer in.Close()
 
 	s := bufio.NewScanner(in)
 	l := list.New()
@@ -250,6 +249,9 @@ func updateInterfaces(params, filePath string) error {
 
 	flag := os.O_TRUNC | os.O_CREATE | os.O_WRONLY
 	out, err := os.OpenFile(filePath, flag, 0777)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		if err := out.Close(); err == nil {
 			log.Println(filePath + " save is ok.")
@@ -258,9 +260,6 @@ func updateInterfaces(params, filePath string) error {
 		}
 	}()
 
-	if err != nil {
-		return err
-	}
 	for p := l.Front(); p != nil; p = p.Next() {
 		line := p.Value.(string)
 		log.Println(line)
@@ -470,4 +469,27 @@ func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo
 	}
 
 	return nil, errors.New("not found record file")
+}
+
+func getRecords(begin, end time.Time) (files []*RecFileInfo, err error) {
+	walkFunc := func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		ext := strings.ToLower(filepath.Ext(filePath))
+		if ext == ".flv" || ext == ".mp4" {
+			t := time.Now()
+			if f, err := getRecFileRange(filePath, begin, end); err == nil {
+				files = append(files, f)
+			}
+			spend := time.Since(t).Seconds()
+			if spend > 10 {
+				log.Printf("spend: %fms", spend)
+			}
+		}
+		return nil
+	}
+
+	err = filepath.Walk(config.SavePath, walkFunc)
+	return
 }
