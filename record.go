@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -103,13 +104,17 @@ func freeDisk() {
 		}
 	}()
 	var files []string
-	walkFunc := func(itemPath string, info os.FileInfo, err error) error {
+	walkFunc := func(filePaths string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		ext := strings.ToLower(filepath.Ext(itemPath))
+		ext := strings.ToLower(filepath.Ext(filePaths))
 		if ext == ".flv" || ext == ".mp4" {
-			files = append(files, itemPath)
+			_, file := path.Split(filePaths)
+			if file[0:1] == "." {
+				return nil
+			}
+			files = append(files, filePaths)
 		}
 		return nil
 	}
@@ -331,16 +336,16 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-	begin, err := time.Parse("2006-01-02 15:04:05", beginStr)
-	if err != nil {
-		res := result.Err.WithMsg(err.Error())
+	endStr := r.URL.Query().Get("end")
+	if endStr == "" {
+		res := result.Err.WithMsg("结束日期不能为空")
 		w.Write(res.Raw())
 		return
 	}
 
-	endStr := r.URL.Query().Get("end")
-	if endStr == "" {
-		res := result.Err.WithMsg("结束日期不能为空")
+	begin, err := time.Parse("2006-01-02 15:04:05", beginStr)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
 		return
 	}
@@ -351,7 +356,17 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var files []*RecFileInfo
+	files, _ := getRecords(begin, end)
+	if len(files) != 0 {
+		res := result.OK.WithData(files)
+		w.Write(res.Raw())
+	} else {
+		res := result.OK.WithData([]interface{}{})
+		w.Write(res.Raw())
+	}
+}
+
+func getRecords(begin, end time.Time) (files []*RecFileInfo, err error) {
 	walkFunc := func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -370,13 +385,6 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	}
 
-	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
-		if len(files) != 0 {
-			res := result.OK.WithData(files)
-			w.Write(res.Raw())
-		} else {
-			res := result.OK.WithData([]interface{}{})
-			w.Write(res.Raw())
-		}
-	}
+	err = filepath.Walk(config.SavePath, walkFunc)
+	return
 }

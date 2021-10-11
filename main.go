@@ -35,15 +35,23 @@ const (
 )
 
 var config struct {
-	Path         string
-	Username     string
-	Password     string
-	Timeout      time.Duration // 会话超时
-	SourceUrl    string        // 拉流源
-	SavePath     string        // 录制存储路径
+	Path     string
+	Username string
+	Password string
+	Timeout  time.Duration // 会话超时
+
+	MQTTHost     string
+	MQTTUsername string
+	MQTTPassword string
+	MQTTClientId string
+
+	SourceUrl string // 拉流源
+	TargetUrl string // 推送到目标平台地址
+
 	AutoRecord   bool          // 是否自动录制
 	SliceStorage bool          // 是否分割文件
 	SliceTime    time.Duration // 分割时间
+	SavePath     string        // 录制存储路径
 	Model        string        // 模式：MO|ZL
 	FlvMeta      bool          // 是否补全Flv Metadata
 }
@@ -58,7 +66,7 @@ func init() {
 
 func ZLMediaKit() {
 	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + config.SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-	var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+	//var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 	log.Println("pullStreamUrl = " + pullStreamUrl)
 
 	err := httpGet(pullStreamUrl)
@@ -67,12 +75,12 @@ func ZLMediaKit() {
 	} else {
 		log.Printf("pull steam ok.[%s]\n", pullStreamUrl)
 
-		err := httpGet(recordUrl)
-		if err != nil {
-			log.Printf("record url [%s] error. %s \n", recordUrl, err.Error())
-		} else {
-			log.Printf("record ok.[%s]\n", recordUrl)
-		}
+		//err := httpGet(recordUrl)
+		//if err != nil {
+		//	log.Printf("record url [%s] error. %s \n", recordUrl, err.Error())
+		//} else {
+		//	log.Printf("record ok.[%s]\n", recordUrl)
+		//}
 	}
 }
 
@@ -112,10 +120,5 @@ func run(ctx context.Context) {
 
 	RunRecord()
 
-	select {
-	case <-ctx.Done():
-		return
-	default:
-
-	}
+	go runMQTT(ctx)
 }

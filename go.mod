@@ -16,6 +16,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/funny/slab v0.0.0-20180511031532-b1fad5e5d478 // indirect
 	github.com/go-ping/ping v0.0.0-20210506233800-ff8be3320020
+	github.com/goiiot/libmqtt v0.9.6
 	github.com/jasonlvhit/gocron v0.0.1
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
@@ -38,6 +39,8 @@ require (
 require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/go-ole/go-ole v1.2.5 // indirect
+	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
+	nhooyr.io/websocket v1.8.6 // indirect
 )

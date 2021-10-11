@@ -152,7 +152,7 @@ func SaveFlv(streamPath string, isAppend bool) error {
 
 		go func() {
 			p.Play(at, vt)
-			log.Printf("timestamp: %v", videoTimes)
+			log.Printf("timestamp: %v", vt)
 			log.Printf("::::::::::::::::::file close::::::::::::::::")
 			file.Close()
 
@@ -170,14 +170,13 @@ func transferFlv(filename string) {
 	idx := strings.LastIndex(filename, "/")
 	tempfile := filename[0:idx] + "/temp.flv"
 
-	nowTime := time.Now()
+	t := time.Now()
 	if err := exec.Command("yamdi", "-i", filename, "-o", tempfile).Run(); err != nil {
 		log.Printf("yamdi -i %s -o %s \n error: %s", filename, tempfile, err.Error())
 		return
 	}
-	endTime := time.Now()
 
-	log.Printf("spend time(s): %f \n", endTime.Sub(nowTime).Seconds())
+	log.Printf("spend time: %f s\n", time.Since(t).Seconds())
 
 	err := os.Rename(tempfile, filename)
 	if err != nil {
