@@ -72,10 +72,12 @@ func RunRecord() {
 }
 
 func doTask() {
-	log.Printf("at %s scheduler...", time.Now().Format(YYYY_MM_DD_HH_MM_SS))
+	log.Println("at scheduler...")
 
 	for {
 		percent, _ := getSdCardUsedPercent()
+		log.Printf("current disk rate %.3f%%\n", percent)
+
 		if percent < C_DISK_SPACE_THRESHOLD {
 			break
 		}

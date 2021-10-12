@@ -1,7 +1,6 @@
 package firefly
 
 import (
-	"context"
 	"github.com/Monibuca/engine/v3"
 	"log"
 	"net/http"
@@ -51,7 +50,7 @@ func ZLMediaKit() {
 	}
 }
 
-func run(ctx context.Context) {
+func run() {
 	os.MkdirAll(config.Path, 0755)
 
 	if config.Model == "ZL" {
@@ -86,14 +85,20 @@ func run(ctx context.Context) {
 	http.HandleFunc(ApiFireflyConfigStorage, storageHandler)
 
 	http.HandleFunc("/vod/", vodHandler)
+
 	http.HandleFunc("/api/record/list", listHandler)
+
 	http.HandleFunc("/api/record/start", startHandler)
+
 	http.HandleFunc("/api/record/stop", stopHandler)
+
 	http.HandleFunc("/api/record/play", playHandler)
+
 	http.HandleFunc("/api/record/delete", deleteHandler)
+
 	http.HandleFunc("/api/record/download", downloadHandler)
 
 	RunRecord()
 
-	go runMQTT(ctx)
+	go runMQTT(engine.Ctx)
 }
