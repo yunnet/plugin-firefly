@@ -1,6 +1,7 @@
 package firefly
 
 import (
+	"encoding/json"
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
 	"github.com/jasonlvhit/gocron"
@@ -30,6 +31,11 @@ type RecFileInfo struct {
 	Size      int64  `json:"size"`
 	Timestamp int64  `json:"timestamp"`
 	Duration  uint32 `json:"duration"`
+}
+
+func (c *RecFileInfo) String() string {
+	res, _ := json.Marshal(c)
+	return string(res)
 }
 
 type FileWr interface {
