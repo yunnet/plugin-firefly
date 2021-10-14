@@ -50,31 +50,6 @@ func Test_mp4_file(t *testing.T) {
 	t.Log(timestamp)
 }
 
-func Test_List_file(t *testing.T) {
-	//filePaths := "D:/work-go/monibuca/resource"
-	//month := "2021-09"
-	//
-	//if files, err := tree(filePaths, 0); err == nil {
-	//	var m = make(map[string][]*RecFileInfo)
-	//	for i := 0; i < len(files); i++ {
-	//		f := files[i]
-	//		day := getYearMonthDay(f.Path) //2021-09
-	//		y := day[0:7]
-	//		if strings.Compare(y, month) == 0 {
-	//			array, _ := m[day]
-	//			array = append(array, f)
-	//			m[day] = array
-	//		}
-	//	}
-	//
-	//	j, _ := json.Marshal(m)
-	//	t.Log(j)
-	//
-	//	t.Log(m)
-	//
-	//}
-}
-
 func Test_StringHex(t *testing.T) {
 	a := "4769676162697445746865726E6574302F302F323400"
 	bytes, err := hex.DecodeString(a)

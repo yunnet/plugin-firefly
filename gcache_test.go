@@ -38,7 +38,7 @@ func Test_gCache(t *testing.T) {
 		recInfo = &RecFileInfo{
 			Url:       strings.TrimPrefix(path, "/"),
 			Size:      fileInfo.Size(),
-			Timestamp: getMp4Timestamp(path),
+			Timestamp: getMp4Timestamp(path).Unix(),
 			Duration:  GetMP4Duration(f),
 		}
 		gc.Set(key, recInfo)

@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+var LOC, _ = time.LoadLocation("Asia/Shanghai")
+
 func SdCardStat() (*disk.UsageStat, error) {
 	return disk.Usage(C_MNT_SD)
 }
@@ -291,6 +293,10 @@ func UnixTimeFormat(path int64) string {
 	return time.Unix(path, 0).Format("2006-01-02")
 }
 
+func StrToDatetime(t string) (time.Time, error) {
+	return time.ParseInLocation(YYYY_MM_DD_HH_MM_SS, t, LOC)
+}
+
 func FormatTime(ms int) string {
 	ss := 1000
 	mi := ss * 60
@@ -335,26 +341,26 @@ func httpGet(url string) error {
 }
 
 //live/hk/2021/09/24/143046.flv
-func getFlvTimestamp(path string) int64 {
+func getFlvTimestamp(path string) time.Time {
 	return getTimestamp(path, 21, 4, "2006/01/02/150405")
 }
 
 //live/hw/2021-09-27/18-07-25.mp4
-func getMp4Timestamp(path string) int64 {
+func getMp4Timestamp(path string) time.Time {
 	return getTimestamp(path, 23, 4, "2006-01-02/15-04-05")
 }
 
-func getTimestamp(path string, start, end int, layout string) int64 {
+func getTimestamp(path string, start, end int, layout string) time.Time {
 	s := path[len(path)-start : len(path)-end]
 	l, err := time.LoadLocation("Local")
 	if err != nil {
-		return 0
+		return time.Unix(0, 0)
 	}
 	tmp, err := time.ParseInLocation(layout, s, l)
 	if err != nil {
-		return 0
+		return time.Unix(0, 0)
 	}
-	return tmp.Unix()
+	return tmp
 }
 
 func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
@@ -365,6 +371,9 @@ func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
 		_, file := path.Split(p)
 		if file[0:1] == "." {
 			return nil, errors.New("temp file " + file)
+		}
+		if strings.Contains(p, "alg") {
+			return nil, errors.New("alg record file")
 		}
 
 		value, err := gc.Get(file)
@@ -386,14 +395,14 @@ func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
 				recFile = &RecFileInfo{
 					Url:       strings.TrimPrefix(p, "/"),
 					Size:      fileInfo.Size(),
-					Timestamp: getFlvTimestamp(p),
+					Timestamp: getFlvTimestamp(p).Unix(),
 					Duration:  getDuration(f),
 				}
 			} else if ext == ".mp4" {
 				recFile = &RecFileInfo{
 					Url:       strings.TrimPrefix(p, "/"),
 					Size:      fileInfo.Size(),
-					Timestamp: getMp4Timestamp(p),
+					Timestamp: getMp4Timestamp(p).Unix(),
 					Duration:  GetMP4Duration(f),
 				}
 			}
@@ -406,10 +415,9 @@ func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
 	return nil, errors.New("日期不匹配")
 }
 
-func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo, err error) {
+func getRecFileRange(dstPath string, begin, end *time.Time) (recFile *RecFileInfo, err error) {
 	p := strings.TrimPrefix(dstPath, config.SavePath)
 	p = strings.ReplaceAll(p, "\\", "/")
-	log.Printf("file path = %s", p)
 
 	_, file := path.Split(p)
 	if file[0:1] == "." {
@@ -417,21 +425,16 @@ func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo
 	}
 
 	ext := strings.ToLower(path.Ext(file))
-	var timestamp int64
+	var timestamp time.Time
 	if ext == ".flv" {
 		timestamp = getFlvTimestamp(p)
 	} else if ext == ".mp4" {
 		timestamp = getMp4Timestamp(p)
 	} else {
-		return nil, errors.New("file ")
+		return nil, errors.New("file types do not match")
 	}
 
-	//t := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
-	//b := begin.Format("2006-01-02 15:04:05")
-	//e := end.Format("2006-01-02 15:04:05")
-	//log.Printf("begin = %s, end = %s, curtime = %s", b, e, t)
-
-	if timestamp >= begin.Unix() && timestamp <= end.Unix() {
+	if begin.Before(timestamp) && end.After(timestamp) {
 		value, err := gc.Get(timestamp)
 		if err != nil {
 			var f *os.File
@@ -450,14 +453,14 @@ func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo
 				recFile = &RecFileInfo{
 					Url:       strings.TrimPrefix(p, "/"),
 					Size:      fileInfo.Size(),
-					Timestamp: timestamp,
+					Timestamp: timestamp.Unix(),
 					Duration:  getDuration(f),
 				}
 			} else if ext == ".mp4" {
 				recFile = &RecFileInfo{
 					Url:       strings.TrimPrefix(p, "/"),
 					Size:      fileInfo.Size(),
-					Timestamp: timestamp,
+					Timestamp: timestamp.Unix(),
 					Duration:  GetMP4Duration(f),
 				}
 			}
@@ -471,7 +474,7 @@ func getRecFileRange(dstPath string, begin, end time.Time) (recFile *RecFileInfo
 	return nil, errors.New("not found record file")
 }
 
-func getRecords(begin, end time.Time) (files []*RecFileInfo, err error) {
+func getRecords(begin, end *time.Time) (files []*RecFileInfo, err error) {
 	walkFunc := func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -479,7 +482,9 @@ func getRecords(begin, end time.Time) (files []*RecFileInfo, err error) {
 		ext := strings.ToLower(filepath.Ext(filePath))
 		if ext == ".flv" || ext == ".mp4" {
 			t := time.Now()
-			if f, err := getRecFileRange(filePath, begin, end); err == nil {
+			if f, err := getRecFileRange(filePath, begin, end); err == nil && f != nil {
+				log.Printf("append file" + f.Url)
+
 				files = append(files, f)
 			}
 			spend := time.Since(t).Seconds()

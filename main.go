@@ -2,26 +2,33 @@ package firefly
 
 import (
 	"github.com/Monibuca/engine/v3"
+	"github.com/Monibuca/utils/v3"
+	. "github.com/logrusorgru/aurora"
+	"github.com/tidwall/gjson"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
-var config struct {
-	Path     string
-	Username string
-	Password string
-	Timeout  time.Duration // 会话超时
+var (
+	BoxName   = "BoChi"
+	SourceUrl = "rtsp://admin:Hw12345678@10.8.72.77:554/LiveMedia/ch1/Media1"
+)
 
+var config struct {
+	Path         string
+	Username     string
+	Password     string
+	Timeout      time.Duration // 会话超时
 	MQTTHost     string
 	MQTTUsername string
 	MQTTPassword string
 	MQTTClientId string
-
-	SourceUrl string // 拉流源
-	TargetUrl string // 推送到目标平台地址
-
+	AlgUrl       string        // 算法源
+	TargetUrl    string        // 推送视频流到目标平台地址
+	UploadUrl    string        // 上传文件到目标平台地址
 	AutoRecord   bool          // 是否自动录制
 	SliceStorage bool          // 是否分割文件
 	SliceTime    time.Duration // 分割时间
@@ -35,28 +42,36 @@ func init() {
 		Name:   "Firefly",
 		Config: &config,
 		Run:    run,
+		HotConfig: map[string]func(interface{}){
+			"AutoRecord": func(v interface{}) {
+				config.AutoRecord = v.(bool)
+			},
+		},
 	})
 }
 
-func ZLMediaKit() {
-	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + config.SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-	log.Println("pullStreamUrl = " + pullStreamUrl)
-
-	err := httpGet(pullStreamUrl)
-	if err != nil {
-		log.Printf("pull stream url error. %s \n", err.Error())
-	} else {
-		log.Println("pull steam ok")
+func initConfig() {
+	filePath := filepath.Join(config.Path, C_JSON_FILE)
+	content, err := readFile(filePath)
+	if nil != err {
+		log.Printf("read firefly.json error " + err.Error())
+		return
 	}
+	SourceUrl = gjson.Get(content, "boxinfo.rtsp").Str
+	utils.Print(Green("::::::boxinfo.rtsp: "), BrightBlue(SourceUrl))
+
+	BoxName = gjson.Get(content, "boxinfo.name").Str
+	utils.Print(Green("::::::boxinfo.name: "), BrightBlue(BoxName))
 }
 
 func run() {
 	os.MkdirAll(config.Path, 0755)
 
+	initConfig()
+
 	if config.Model == "ZL" {
 		ZLMediaKit()
 	}
-
 	//hi
 	http.HandleFunc(ApiFireflyHi, hiHandler)
 
@@ -100,5 +115,17 @@ func run() {
 
 	RunRecord()
 
-	go runMQTT(engine.Ctx)
+	runMQTT(engine.Ctx)
+}
+
+func ZLMediaKit() {
+	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+	log.Println("pullStreamUrl = " + pullStreamUrl)
+
+	err := httpGet(pullStreamUrl)
+	if err != nil {
+		log.Printf("pull stream url error. %s \n", err.Error())
+	} else {
+		log.Println("pull steam ok")
+	}
 }

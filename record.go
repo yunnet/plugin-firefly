@@ -76,7 +76,7 @@ func doTask() {
 
 	for {
 		percent, _ := getSdCardUsedPercent()
-		log.Printf("current disk rate %.3f%%\n", percent)
+		log.Printf("disk used %.3f%%\n", percent)
 
 		if percent < C_DISK_SPACE_THRESHOLD {
 			break
@@ -127,9 +127,10 @@ func freeDisk() {
 	}
 	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
 		delFile := files[0]
-		log.Println(delFile)
+		log.Println("remove file: " + delFile)
+
 		if err := os.Remove(delFile); err != nil {
-			log.Printf("remove file %s error. %s", delFile, err)
+			log.Printf("remove file error: %s", err)
 		}
 	}
 }
@@ -350,20 +351,21 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	begin, err := time.Parse(YYYY_MM_DD_HH_MM_SS, beginStr)
-	if err != nil {
-		res := result.Err.WithMsg(err.Error())
-		w.Write(res.Raw())
-		return
-	}
-	end, err := time.Parse(YYYY_MM_DD_HH_MM_SS, endStr)
+	begin, err := StrToDatetime(beginStr)
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())
 		return
 	}
 
-	files, _ := getRecords(begin, end)
+	end, err := StrToDatetime(endStr)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	files, _ := getRecords(&begin, &end)
 	if len(files) != 0 {
 		res := result.OK.WithData(files)
 		w.Write(res.Raw())

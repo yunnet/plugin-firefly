@@ -1,15 +1,21 @@
 package firefly
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	. "github.com/Monibuca/utils/v3"
 	"github.com/goiiot/libmqtt"
 	"github.com/tidwall/gjson"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -62,7 +68,6 @@ func runMQTT(ctx context.Context) {
 		}
 	}(c)
 
-	switchUrl = config.SourceUrl
 	topic = "/device/" + config.MQTTClientId
 
 	client, err = libmqtt.NewClient(
@@ -183,7 +188,7 @@ func pubHandler(client libmqtt.Client, topic string, err error) {
 }
 
 func handleData(client libmqtt.Client, topic, msg string) {
-	log.Printf("recv [%v] message: %v", topic, string(msg))
+	log.Printf("recv [%v] message: %v", topic, msg)
 
 	commandNode := gjson.Get(msg, "command")
 
@@ -196,16 +201,16 @@ func handleData(client libmqtt.Client, topic, msg string) {
 		CloseFFmpeg()
 	case "switch":
 		{
-			enabled := gjson.Get(msg, "enabled")
-			switchFFmpeg(enabled.Bool())
+			enabled := gjson.Get(msg, "enabled").Bool()
+			switchFFmpeg(enabled)
 		}
 	case "record":
 		getRecordFiles(client, msg)
 
 	case "upload":
 		{
-			file := gjson.Get(msg, "file")
-			uploadFile(file.Str)
+			file := gjson.Get(msg, "file").Str
+			uploadFile(file)
 		}
 	default:
 		log.Printf("command error %s", commandNode.String())
@@ -214,7 +219,48 @@ func handleData(client libmqtt.Client, topic, msg string) {
 
 //指令：{"command": "upload", "file": "live/hw/2021-10-09/15-38-05.mp4"}
 func uploadFile(file string) {
+	filePath := filepath.Join(config.SavePath, file)
 
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	//关键的一步操作
+	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filePath)
+	if err != nil {
+		fmt.Println("error writing to buffer")
+		return
+	}
+
+	//打开文件句柄操作
+	fh, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("error opening file")
+		return
+	}
+	defer fh.Close()
+
+	//iocopy
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	//POST
+	resp, err := http.Post(config.UploadUrl, contentType, bodyBuf)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	fmt.Println(resp.Status)
+	fmt.Println(string(respBody))
+	return
 }
 
 //指令：{"command": "record", "begin": "2021-10-11 00:00:00", "end": "2021-10-11 23:59:59"}
@@ -226,22 +272,21 @@ func getRecordFiles(client libmqtt.Client, data string) {
 	endStr := endNode.Str
 
 	var begin, end time.Time
-
-	begin, err = time.Parse(YYYY_MM_DD_HH_MM_SS, beginStr)
+	begin, err = StrToDatetime(beginStr)
 	if err != nil {
 		payload := "开始日期错误 " + err.Error()
 		publish(client, payload)
 		return
 	}
 
-	end, err = time.Parse(YYYY_MM_DD_HH_MM_SS, endStr)
+	end, err = StrToDatetime(endStr)
 	if err != nil {
 		payload := "开始日期错误 " + err.Error()
 		publish(client, payload)
 		return
 	}
 
-	files, err := getRecords(begin, end)
+	files, err := getRecords(&begin, &end)
 	if err != nil {
 		payload := "获取文件列表错误 " + err.Error()
 		publish(client, payload)
@@ -267,9 +312,9 @@ func switchFFmpeg(enabled bool) {
 	CloseFFmpeg()
 
 	if enabled {
-		switchUrl = config.SourceUrl
+		switchUrl = config.AlgUrl
 	} else {
-		switchUrl = "rtsp://127.0.0.1/live/hw"
+		switchUrl = SourceUrl
 	}
 	openFFmpeg(switchUrl)
 }
