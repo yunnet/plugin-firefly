@@ -22,13 +22,6 @@ var config struct {
 	Username     string
 	Password     string
 	Timeout      time.Duration // 会话超时
-	MQTTHost     string
-	MQTTUsername string
-	MQTTPassword string
-	MQTTClientId string
-	AlgUrl       string        // 算法源
-	TargetUrl    string        // 推送视频流到目标平台地址
-	UploadUrl    string        // 上传文件到目标平台地址
 	AutoRecord   bool          // 是否自动录制
 	SliceStorage bool          // 是否分割文件
 	SliceTime    time.Duration // 分割时间
@@ -72,6 +65,7 @@ func run() {
 	if config.Model == "ZL" {
 		ZLMediaKit()
 	}
+
 	//hi
 	http.HandleFunc(ApiFireflyHi, hiHandler)
 
@@ -114,8 +108,6 @@ func run() {
 	http.HandleFunc("/api/record/download", downloadHandler)
 
 	RunRecord()
-
-	runMQTT(engine.Ctx)
 }
 
 func ZLMediaKit() {

@@ -51,20 +51,19 @@ var ExtraConfig struct {
 }
 
 func RunRecord() {
+	os.MkdirAll(config.SavePath, 0755)
+	go AddHook(HOOK_PUBLISH, onPublish)
+
 	if config.AutoRecord {
 		gCnt = 0
 		sliceTime = int(config.SliceTime)
 		if sliceTime < 5 {
 			sliceTime = 5
-			log.Printf("record at least %d minutes.", sliceTime)
 		}
+		log.Printf("record at least %d minutes.", sliceTime)
 	}
 
-	os.MkdirAll(config.SavePath, 0755)
-
 	gc = gcache.New(100).LRU().Build()
-
-	go AddHook(HOOK_PUBLISH, onPublish)
 
 	s := gocron.NewScheduler()
 	s.Every(1).Minute().Do(doTask)
@@ -137,7 +136,7 @@ func freeDisk() {
 
 func onPublish(p *Stream) {
 	if config.AutoRecord || (ExtraConfig.AutoRecordFilter != nil && ExtraConfig.AutoRecordFilter(p.StreamPath)) {
-		log.Printf("stream path %s", p.StreamPath)
+		log.Printf("::::::stream path %s", p.StreamPath)
 		SaveFlv(p.StreamPath, false)
 	}
 }

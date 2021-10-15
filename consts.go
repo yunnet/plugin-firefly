@@ -1,6 +1,7 @@
 package firefly
 
 const (
+	C_PID_PULL              = "pull.lock"
 	C_PID_FILE              = "gonne.lock"
 	C_JSON_FILE             = "firefly.json"
 	C_MNT_SD                = "/mnt/sd"
