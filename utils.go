@@ -7,15 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/Monibuca/utils/v3"
+	"github.com/Monibuca/utils/v3/codec"
 	"github.com/go-ping/ping"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/tidwall/gjson"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -363,138 +364,19 @@ func getTimestamp(path string, start, end int, layout string) time.Time {
 	return tmp
 }
 
-func getRecFileInfo(dstPath, findDay string) (recFile *RecFileInfo, err error) {
-	p := strings.TrimPrefix(dstPath, config.SavePath)
-	p = strings.ReplaceAll(p, "\\", "/")
-
-	if strings.Contains(p, findDay) {
-		_, file := path.Split(p)
-		if file[0:1] == "." {
-			return nil, errors.New("temp file " + file)
-		}
-		if strings.Contains(p, "alg") {
-			return nil, errors.New("alg record file")
-		}
-
-		value, err := gc.Get(file)
-		if err != nil {
-			var f *os.File
-			f, err = os.Open(dstPath)
-			if err != nil {
-				return nil, err
-			}
-			defer f.Close()
-
-			fileInfo, err := f.Stat()
-			if err != nil {
-				return nil, err
-			}
-
-			ext := strings.ToLower(filepath.Ext(fileInfo.Name()))
-			if ext == ".flv" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: getFlvTimestamp(p).Unix(),
-					Duration:  getDuration(f),
-				}
-			} else if ext == ".mp4" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: getMp4Timestamp(p).Unix(),
-					Duration:  GetMP4Duration(f),
+func getDuration(file FileWr) uint32 {
+	_, err := file.Seek(-4, io.SeekEnd)
+	if err == nil {
+		var tagSize uint32
+		if tagSize, err = ReadByteToUint32(file, true); err == nil {
+			_, err = file.Seek(-int64(tagSize)-4, io.SeekEnd)
+			if err == nil {
+				_, timestamp, _, err := codec.ReadFLVTag(file)
+				if err == nil {
+					return timestamp
 				}
 			}
-			gc.SetWithExpire(fileInfo.Name(), recFile, time.Hour*12)
-		} else {
-			recFile, _ = (value).(*RecFileInfo)
 		}
-		return recFile, nil
 	}
-	return nil, errors.New("日期不匹配")
-}
-
-func getRecFileRange(dstPath string, begin, end *time.Time) (recFile *RecFileInfo, err error) {
-	p := strings.TrimPrefix(dstPath, config.SavePath)
-	p = strings.ReplaceAll(p, "\\", "/")
-
-	_, file := path.Split(p)
-	if file[0:1] == "." {
-		return nil, errors.New("temp file " + file)
-	}
-
-	ext := strings.ToLower(path.Ext(file))
-	var timestamp time.Time
-	if ext == ".flv" {
-		timestamp = getFlvTimestamp(p)
-	} else if ext == ".mp4" {
-		timestamp = getMp4Timestamp(p)
-	} else {
-		return nil, errors.New("file types do not match")
-	}
-
-	if begin.Before(timestamp) && end.After(timestamp) {
-		value, err := gc.Get(timestamp)
-		if err != nil {
-			var f *os.File
-			f, err = os.Open(dstPath)
-			if err != nil {
-				return nil, err
-			}
-			defer f.Close()
-
-			fileInfo, err := f.Stat()
-			if err != nil {
-				return nil, err
-			}
-
-			if ext == ".flv" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: timestamp.Unix(),
-					Duration:  getDuration(f),
-				}
-			} else if ext == ".mp4" {
-				recFile = &RecFileInfo{
-					Url:       strings.TrimPrefix(p, "/"),
-					Size:      fileInfo.Size(),
-					Timestamp: timestamp.Unix(),
-					Duration:  GetMP4Duration(f),
-				}
-			}
-			gc.SetWithExpire(timestamp, recFile, time.Hour*12)
-		} else {
-			recFile, _ = (value).(*RecFileInfo)
-		}
-		return recFile, nil
-	}
-
-	return nil, errors.New("not found record file")
-}
-
-func getRecords(begin, end *time.Time) (files []*RecFileInfo, err error) {
-	walkFunc := func(filePath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		ext := strings.ToLower(filepath.Ext(filePath))
-		if ext == ".flv" || ext == ".mp4" {
-			t := time.Now()
-			if f, err := getRecFileRange(filePath, begin, end); err == nil && f != nil {
-				log.Printf("append file" + f.Url)
-
-				files = append(files, f)
-			}
-			spend := time.Since(t).Seconds()
-			if spend > 10 {
-				log.Printf("spend: %fms", spend)
-			}
-		}
-		return nil
-	}
-
-	err = filepath.Walk(config.SavePath, walkFunc)
-	return
+	return 0
 }

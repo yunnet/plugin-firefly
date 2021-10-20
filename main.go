@@ -43,7 +43,7 @@ func init() {
 	})
 }
 
-func initConfig() {
+func initBoxConfig() {
 	filePath := filepath.Join(config.Path, C_JSON_FILE)
 	content, err := readFile(filePath)
 	if nil != err {
@@ -58,9 +58,13 @@ func initConfig() {
 }
 
 func run() {
-	os.MkdirAll(config.Path, 0755)
+	err := os.MkdirAll(config.Path, 0755)
+	if err != nil {
+		log.Printf("mkdir %s error: %s", config.Path, err.Error())
+		return
+	}
 
-	initConfig()
+	initBoxConfig()
 
 	if config.Model == "ZL" {
 		ZLMediaKit()
@@ -90,24 +94,14 @@ func run() {
 	//网络ping
 	http.HandleFunc(ApiFireflyConfigPing, pingConfigTcpHandler)
 
-	//storage
+	//查看磁盘大小  默认只查看 "/mnt/sd"
 	http.HandleFunc(ApiFireflyConfigStorage, storageHandler)
 
-	http.HandleFunc("/vod/", vodHandler)
-
+	//查询录制文件列表
 	http.HandleFunc("/api/record/list", listHandler)
 
-	http.HandleFunc("/api/record/start", startHandler)
-
-	http.HandleFunc("/api/record/stop", stopHandler)
-
-	http.HandleFunc("/api/record/play", playHandler)
-
-	http.HandleFunc("/api/record/delete", deleteHandler)
-
+	//下载录制文件
 	http.HandleFunc("/api/record/download", downloadHandler)
-
-	RunRecord()
 }
 
 func ZLMediaKit() {
