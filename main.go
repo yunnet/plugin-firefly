@@ -102,16 +102,48 @@ func run() {
 
 	//下载录制文件
 	http.HandleFunc("/api/record/download", downloadHandler)
+
+	initRecord()
 }
 
 func ZLMediaKit() {
 	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+	var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+
+	//pullStreamUrl := "http://10.8.76.112/index/api/addFFmpegSource?src_url=rtsp://admin:Hw12345678@10.8.72.77:554/LiveMedia/ch1/Media1/trackID=1&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+
 	log.Println("pullStreamUrl = " + pullStreamUrl)
 
-	err := httpGet(pullStreamUrl)
-	if err != nil {
-		log.Printf("pull stream url error. %s \n", err.Error())
-	} else {
-		log.Println("pull steam ok")
+	log.Println("try pull stream ...")
+	pullOk := false
+	for {
+		if !pullOk {
+			res, err := httpGet(pullStreamUrl)
+			if err != nil {
+				log.Printf("pull stream url error. %s \n", err.Error())
+				time.Sleep(10 * time.Second)
+			} else {
+				log.Println(res)
+				code := gjson.Get(res, "code").Num
+				if code == 0 {
+					pullOk = true
+				} else {
+					time.Sleep(10 * time.Second)
+				}
+			}
+		}
+
+		if pullOk {
+			log.Println("try request record ...")
+			res, err := httpGet(recordUrl)
+			if err != nil {
+				log.Printf("record url [%s] error. %s \n", recordUrl, err.Error())
+				time.Sleep(10 * time.Second)
+			} else {
+				log.Println("record ok.")
+				log.Println(res)
+				break
+			}
+		}
 	}
 }

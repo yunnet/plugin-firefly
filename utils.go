@@ -326,19 +326,22 @@ func FormatTimeStr(ms int) string {
 	return fmt.Sprintf("%d天%d小时%d分%d秒%d毫秒", day, hour, minute, second, milliSecond)
 }
 
-func httpGet(url string) error {
-	resp, err := http.Get(url)
+func httpGet(url string) (string, error) {
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Get(url)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	log.Println(string(body))
-	return nil
+	return string(body), nil
 }
 
 //live/hk/2021/09/24/143046.flv

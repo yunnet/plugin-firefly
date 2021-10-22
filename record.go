@@ -38,7 +38,7 @@ type FileWr interface {
 	io.Closer
 }
 
-func init() {
+func initRecord() {
 	gc = gcache.New(100).LRU().Build()
 
 	s := gocron.NewScheduler()
