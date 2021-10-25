@@ -107,8 +107,8 @@ func run() {
 }
 
 func ZLMediaKit() {
-	var pullStreamUrl = "http://127.0.0.1/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-	var recordUrl = "http://127.0.0.1/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+	var pullStreamUrl = "http://127.0.0.1:8082/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
+	var recordUrl = "http://127.0.0.1:8082/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 
 	//pullStreamUrl := "http://10.8.76.112/index/api/addFFmpegSource?src_url=rtsp://admin:Hw12345678@10.8.72.77:554/LiveMedia/ch1/Media1/trackID=1&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
 
