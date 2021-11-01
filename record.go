@@ -100,7 +100,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 
@@ -150,7 +150,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 

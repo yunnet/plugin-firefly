@@ -27,11 +27,6 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != ApiFireflyConfigPing {
-		NotFoundHandler(w, r)
-		return
-	}
-
 	ipAddr := r.URL.Query().Get("ipaddr")
 	if ipAddr == "" {
 		res := result.Err.WithMsg("ipv4地址不能为空")
@@ -64,12 +59,7 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-
-	if r.URL.Path != ApiFireflyConfig {
-		NotFoundHandler(w, r)
-		return
-	}
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 
@@ -101,12 +91,7 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-
-	if r.URL.Path != ApiFireflyConfigEdit {
-		NotFoundHandler(w, r)
-		return
-	}
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 
@@ -184,12 +169,7 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != ApiFireflyConfigTcp {
-		NotFoundHandler(w, r)
-		return
-	}
-
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 
@@ -217,12 +197,7 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != ApiFireflyConfigTcpEdit {
-		NotFoundHandler(w, r)
-		return
-	}
-
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 
@@ -264,12 +239,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != ApiFireflyConfigStorage {
-		NotFoundHandler(w, r)
-		return
-	}
-
-	if isOk := CheckLogin(w, r); !isOk {
+	if isOk := checkLogin(w, r); !isOk {
 		return
 	}
 

@@ -2,8 +2,17 @@ package firefly
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
+	"time"
 )
+
+func Test_timeDuration(t *testing.T) {
+	var d time.Duration
+	d = 3600
+	s := strconv.FormatInt(int64(d), 10)
+	t.Log(s)
+}
 
 func Test_ip(t *testing.T) {
 	ip1 := "192.168.0.111"

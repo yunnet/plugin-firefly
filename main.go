@@ -9,19 +9,22 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
+//boxinfo
 var (
-	BoxName   = "BoChi"
-	SourceUrl = "rtsp://admin:Hw12345678@10.8.72.77:554/LiveMedia/ch1/Media1"
+	BoxName    string        // 设备名
+	Username   string        // 用户名
+	Password   string        // 密码
+	Timeout    time.Duration // 会话超时
+	SourceUrl  string        // 原始视频主码流源
+	Source2Url string        // 原始视频子码流源
 )
 
 var config struct {
-	Path         string
-	Username     string
-	Password     string
-	Timeout      time.Duration // 会话超时
+	Path         string        // firefly配置文件路径
 	AutoRecord   bool          // 是否自动录制
 	SliceStorage bool          // 是否分割文件
 	SliceTime    time.Duration // 分割时间
@@ -50,11 +53,24 @@ func initBoxConfig() {
 		log.Printf("read firefly.json error " + err.Error())
 		return
 	}
-	SourceUrl = gjson.Get(content, "boxinfo.rtsp").Str
-	utils.Print(Green("::::::boxinfo.rtsp: "), BrightBlue(SourceUrl))
 
 	BoxName = gjson.Get(content, "boxinfo.name").Str
 	utils.Print(Green("::::::boxinfo.name: "), BrightBlue(BoxName))
+
+	Username = gjson.Get(content, "boxinfo.username").Str
+	utils.Print(Green("::::::boxinfo.username: "), BrightBlue(Username))
+
+	Password = gjson.Get(content, "boxinfo.password").Str
+	utils.Print(Green("::::::boxinfo.password: "), BrightBlue("******"))
+
+	Timeout = time.Duration(gjson.Get(content, "boxinfo.timeout").Int())
+	utils.Print(Green("::::::boxinfo.timeout: "), BrightBlue(strconv.FormatInt(int64(Timeout), 10)+"s"))
+
+	SourceUrl = gjson.Get(content, "boxinfo.rtsp").Str
+	utils.Print(Green("::::::boxinfo.rtsp: "), BrightBlue(SourceUrl))
+
+	Source2Url = gjson.Get(content, "boxinfo.rtsp2").Str
+	utils.Print(Green("::::::boxinfo.rtsp2: "), BrightBlue(Source2Url))
 }
 
 func run() {
@@ -65,37 +81,39 @@ func run() {
 	}
 
 	initBoxConfig()
-
 	if config.Model == "ZL" {
 		ZLMediaKit()
 	}
 
 	//hi
-	http.HandleFunc(ApiFireflyHi, hiHandler)
+	http.HandleFunc("/api/firefly/hi", hiHandler)
 
 	//登陆
-	http.HandleFunc(ApiFireflyLogin, loginHandler)
+	http.HandleFunc("/api/firefly/login", loginHandler)
 
 	//刷新token
-	http.HandleFunc(ApiFireflyRefresh, refreshHandler)
+	http.HandleFunc("/api/firefly/refresh", refreshHandler)
+
+	//更改密码
+	http.HandleFunc("/api/firefly/changepwd", changePwdHandler)
 
 	//重启机器
-	http.HandleFunc(ApiFireflyReboot, rebootHandler)
+	http.HandleFunc("/api/firefly/reboot", rebootHandler)
 
 	//JSON配置查询
-	http.HandleFunc(ApiFireflyConfig, getConfigHandler)
+	http.HandleFunc("/api/firefly/config", getConfigHandler)
 	//JSON配置编辑
-	http.HandleFunc(ApiFireflyConfigEdit, editConfigHandler)
+	http.HandleFunc("/api/firefly/config/edit", editConfigHandler)
 
 	//网络查询
-	http.HandleFunc(ApiFireflyConfigTcp, getConfigTcpHandler)
+	http.HandleFunc("/api/firefly/config/tcp", getConfigTcpHandler)
 	//网络设置
-	http.HandleFunc(ApiFireflyConfigTcpEdit, editConfigTcpHandler)
+	http.HandleFunc("/api/firefly/config/tcp/edit", editConfigTcpHandler)
 	//网络ping
-	http.HandleFunc(ApiFireflyConfigPing, pingConfigTcpHandler)
+	http.HandleFunc("/api/firefly/config/ping", pingConfigTcpHandler)
 
 	//查看磁盘大小  默认只查看 "/mnt/sd"
-	http.HandleFunc(ApiFireflyConfigStorage, storageHandler)
+	http.HandleFunc("/api/firefly/storage", storageHandler)
 
 	//查询录制文件列表
 	http.HandleFunc("/api/record/list", listHandler)
