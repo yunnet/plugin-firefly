@@ -2,6 +2,7 @@ package firefly
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"encoding/hex"
 	"encoding/json"
@@ -24,7 +25,15 @@ import (
 
 var LOC, _ = time.LoadLocation("Asia/Shanghai")
 
-func SdCardStat() (*disk.UsageStat, error) {
+func jsonFormat(data string) string {
+	var str bytes.Buffer
+	if err := json.Indent(&str, []byte(data), "", "    "); err != nil {
+		return ""
+	}
+	return str.String()
+}
+
+func sdCardStat() (*disk.UsageStat, error) {
 	return disk.Usage(C_MNT_SD)
 }
 

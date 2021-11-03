@@ -18,7 +18,7 @@ import (
 
 func refreshHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -55,7 +55,7 @@ func checkLogin(w http.ResponseWriter, r *http.Request) bool {
 func changePwdHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "POST" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -98,22 +98,20 @@ func changePwdHandler(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(config.Path, C_JSON_FILE)
 	content, err := readFile(filePath)
 
-	node := gjson.Get(content, "boxinfo")
+	node := gjson.Get(content, "account")
 	if !node.Exists() {
-		res := result.Err.WithMsg("boxinfo node does not exist.")
+		res := result.Err.WithMsg("account node does not exist.")
 		w.Write(res.Raw())
 		return
 	}
 
-	var infoMap = make(map[string]interface{}, 5)
-	infoMap["name"] = BoxName
+	var infoMap = make(map[string]interface{}, 2)
 	infoMap["username"] = Username
 	infoMap["password"] = Password
 	infoMap["timeout"] = Timeout
-	infoMap["rtsp"] = SourceUrl
-	infoMap["rtsp2"] = Source2Url
 
-	resultJson, _ := sjson.Set(content, "boxinfo", infoMap)
+	resultJson, _ := sjson.Set(content, "account", infoMap)
+	resultJson = jsonFormat(resultJson)
 
 	flag := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
 	file, err := os.OpenFile(filePath, flag, 0755)
@@ -133,7 +131,7 @@ func changePwdHandler(w http.ResponseWriter, r *http.Request) {
 func rebootHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -157,7 +155,7 @@ func rebootHandler(w http.ResponseWriter, r *http.Request) {
 func hiHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -174,7 +172,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}

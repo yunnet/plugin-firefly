@@ -142,6 +142,7 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resultJson, _ := sjson.Set(content, nodePath.String(), nodeData.Value())
+	resultJson = jsonFormat(resultJson)
 
 	flag := os.O_CREATE | os.O_TRUNC | os.O_WRONLY
 	file, err := os.OpenFile(filePath, flag, 0755)
@@ -248,7 +249,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 	}
 
-	usageStat, err := SdCardStat()
+	usageStat, err := sdCardStat()
 	if err != nil {
 		res := result.Err.WithMsg(err.Error())
 		w.Write(res.Raw())

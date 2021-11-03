@@ -57,20 +57,20 @@ func initBoxConfig() {
 	BoxName = gjson.Get(content, "boxinfo.name").Str
 	utils.Print(Green("::::::boxinfo.name: "), BrightBlue(BoxName))
 
-	Username = gjson.Get(content, "boxinfo.username").Str
-	utils.Print(Green("::::::boxinfo.username: "), BrightBlue(Username))
-
-	Password = gjson.Get(content, "boxinfo.password").Str
-	utils.Print(Green("::::::boxinfo.password: "), BrightBlue("******"))
-
-	Timeout = time.Duration(gjson.Get(content, "boxinfo.timeout").Int())
-	utils.Print(Green("::::::boxinfo.timeout: "), BrightBlue(strconv.FormatInt(int64(Timeout), 10)+"s"))
-
 	SourceUrl = gjson.Get(content, "boxinfo.rtsp").Str
 	utils.Print(Green("::::::boxinfo.rtsp: "), BrightBlue(SourceUrl))
 
 	Source2Url = gjson.Get(content, "boxinfo.rtsp2").Str
 	utils.Print(Green("::::::boxinfo.rtsp2: "), BrightBlue(Source2Url))
+
+	Username = gjson.Get(content, "account.username").Str
+	utils.Print(Green("::::::account.username: "), BrightBlue(Username))
+
+	Password = gjson.Get(content, "account.password").Str
+	utils.Print(Green("::::::account.password: "), BrightBlue("******"))
+
+	Timeout = time.Duration(gjson.Get(content, "account.timeout").Int())
+	utils.Print(Green("::::::account.timeout: "), BrightBlue(strconv.FormatInt(int64(Timeout), 10)+"s"))
 }
 
 func run() {
@@ -125,43 +125,25 @@ func run() {
 }
 
 func ZLMediaKit() {
-	var pullStreamUrl = "http://127.0.0.1:8082/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-	var recordUrl = "http://127.0.0.1:8082/index/api/startRecord?type=1&vhost=__defaultVhost__&app=live&stream=hw&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-
-	//pullStreamUrl := "http://10.8.76.112/index/api/addFFmpegSource?src_url=rtsp://admin:Hw12345678@10.8.72.77:554/LiveMedia/ch1/Media1/trackID=1&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc"
-
+	var pullStreamUrl = "http://127.0.0.1:8082/index/api/addFFmpegSource?src_url=" + SourceUrl + "&dst_url=rtsp://127.0.0.1/live/hw&timeout_ms=10000&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc&enable_mp4=1"
 	log.Println("pullStreamUrl = " + pullStreamUrl)
 
-	log.Println("try pull stream ...")
-	pullOk := false
+	i := 1
 	for {
-		if !pullOk {
-			res, err := httpGet(pullStreamUrl)
-			if err != nil {
-				log.Printf("pull stream url error. %s \n", err.Error())
-				time.Sleep(10 * time.Second)
-			} else {
-				log.Println(res)
-				code := gjson.Get(res, "code").Num
-				if code == 0 {
-					pullOk = true
-				} else {
-					time.Sleep(10 * time.Second)
-				}
-			}
-		}
-
-		if pullOk {
-			log.Println("try request record ...")
-			res, err := httpGet(recordUrl)
-			if err != nil {
-				log.Printf("record url [%s] error. %s \n", recordUrl, err.Error())
-				time.Sleep(10 * time.Second)
-			} else {
-				log.Println("record ok.")
-				log.Println(res)
+		log.Println("try pull stream ......" + strconv.Itoa(i))
+		res, err := httpGet(pullStreamUrl)
+		if err != nil {
+			log.Printf("pull stream url error. %s \n", err.Error())
+			time.Sleep(10 * time.Second)
+		} else {
+			log.Println(res)
+			code := gjson.Get(res, "code").Num
+			if code == 0 {
 				break
+			} else {
+				time.Sleep(10 * time.Second)
 			}
 		}
+		i++
 	}
 }
