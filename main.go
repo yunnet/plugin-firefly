@@ -21,6 +21,8 @@ var (
 	Timeout    time.Duration // 会话超时
 	SourceUrl  string        // 原始视频主码流源
 	Source2Url string        // 原始视频子码流源
+	privateKey string        // RSA私钥
+	publicKey  string        // RSA公钥
 )
 
 var config struct {
@@ -71,6 +73,12 @@ func initBoxConfig() {
 
 	Timeout = time.Duration(gjson.Get(content, "account.timeout").Int())
 	utils.Print(Green("::::::account.timeout: "), BrightBlue(strconv.FormatInt(int64(Timeout), 10)+"s"))
+
+	privateKey = gjson.Get(content, "rsa.private").Str
+	utils.Print(Green("::::::rsa.private: "), BrightBlue("******"))
+
+	publicKey = gjson.Get(content, "rsa.public").Str
+	utils.Print(Green("::::::rsa.public: "), BrightBlue("******"))
 }
 
 func run() {

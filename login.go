@@ -1,8 +1,10 @@
 package firefly
 
 import (
+	"encoding/hex"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"github.com/wumansgy/goEncrypt"
 	"github.com/yunnet/plugin-firefly/jwt"
 	result "github.com/yunnet/plugin-firefly/web"
 	"io/ioutil"
@@ -195,8 +197,21 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
+	crypttext, err := hex.DecodeString(requestPassword)
+	if err != nil {
+		res := result.Err.WithMsg("用户名或密码错误,请重新输入")
+		w.Write(res.Raw())
+		return
+	}
 
-	password := jwt.PasswordEncoder(requestPassword)
+	plaintext, err := goEncrypt.RsaDecrypt(crypttext, []byte(privateKey))
+	if err != nil {
+		res := result.Err.WithMsg("用户名或密码错误,请重新输入")
+		w.Write(res.Raw())
+		return
+	}
+
+	password := jwt.PasswordEncoder(string(plaintext))
 	if strings.Compare(Password, password) != 0 {
 		res := result.Err.WithMsg("用户名或密码错误,请重新输入")
 		w.Write(res.Raw())
