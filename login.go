@@ -1,7 +1,7 @@
 package firefly
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wumansgy/goEncrypt"
@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,7 +58,7 @@ func checkLogin(w http.ResponseWriter, r *http.Request) bool {
 func changePwdHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "POST" {
-		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
+		res := result.Err.WithMsg(ErrorWithPostMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -169,23 +170,37 @@ func hiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(res.Raw())
 }
 
-// [Get] /api/firefly/login
+// [POST] /api/firefly/login
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 
-	if r.Method != "GET" {
-		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
+	if r.Method != "POST" {
+		res := result.Err.WithMsg(ErrorWithPostMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
 
-	requestUser := r.URL.Query().Get("username")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		res := result.Err.WithMsg(err.Error())
+		w.Write(res.Raw())
+		return
+	}
+
+	requestUser := values.Get("username")
 	if requestUser == "" {
 		res := result.Err.WithMsg("用户名不能为空")
 		w.Write(res.Raw())
 		return
 	}
-	requestPassword := r.URL.Query().Get("password")
+	requestPassword := values.Get("password")
 	if requestPassword == "" {
 		res := result.Err.WithMsg("密码不能为空")
 		w.Write(res.Raw())
@@ -197,7 +212,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(res.Raw())
 		return
 	}
-	crypttext, err := hex.DecodeString(requestPassword)
+	crypttext, err := base64.StdEncoding.DecodeString(requestPassword)
 	if err != nil {
 		res := result.Err.WithMsg("用户名或密码错误,请重新输入")
 		w.Write(res.Raw())

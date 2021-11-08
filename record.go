@@ -47,8 +47,6 @@ func initRecord() {
 }
 
 func doTask() {
-	log.Println("at scheduler...")
-
 	for {
 		percent, _ := getSdCardUsedPercent()
 		log.Printf("disk used %.3f%%\n", percent)
@@ -95,7 +93,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -145,7 +143,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}

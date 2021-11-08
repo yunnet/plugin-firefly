@@ -1,6 +1,7 @@
 package firefly
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/wumansgy/goEncrypt"
@@ -67,6 +68,46 @@ func Test_Decoder(t *testing.T) {
 	str := "73db120e36e5f7bdc20fb8aac1138b89c5937747c228dd6eec7067fcd820bd3da328fb8930a01efe137602e657d6331a0f043a8ddc2a067b6813ad3ece34cd0a3f56a5b78af472150aae2c0a82236915b6f2a4680a758587830586dbbe34f79644a9f6bb832b53b87201f5463592072acdac1f581f19384785dd4b964af3beb8c9f83bd7be65f04c2f977b34e00c24ec57ffa730cf906917c654063307e4947fea6471c8c6ab79d096c3252a514987ace6e1ac3e86ea63a09f7fc28ba4255cb3295f6e222d44a5f82e4f9ea234898cfa17a33e79b68fab4765bc3abfa111e3aa9a44dc50efaf5b32bd1f74b99501603bda742732a0fce9437c1329e13660dafd"
 
 	crypttext, _ := hex.DecodeString(str)
+	// 解密操作，直接传入密文和私钥解密操作，得到明文
+	plaintext, err := goEncrypt.RsaDecrypt(crypttext, []byte(private_Key))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("明文：", string(plaintext))
+
+}
+
+func Test_Decode_Base64(t *testing.T) {
+	str := "sHiFX5raoRYeUgkgACaWQHWUymtDlgBVOMeRsgSCoSH3rnoGSHNSsOhE9RPqOLgXmrkC3jl/yUW/yhescXfeqgW6J9QqTV+M86cU+hieh2hky380amgDbS1AfjRvtrqL82E+erG4Qo0Om2kzg7HyKToZRk8ov2kvl214HLp9tcCv1uZlOIhmOc5YxUXLZukIy5g7Iahr6AU1V8vChmm9Czne62O3Bzh6nakDiFdeGuw0tBVombRNAKsLBxS4WiZFkuNzFjMTfKsGF9v0BDKXMuk0DcsZHMI+Oinrno2C4n0YvkhMKuM96KELsN+EczuBOKTbPuKprjBepkGtMbkxxg=="
+	crypttext, _ := base64.StdEncoding.DecodeString(str)
+
+	// 解密操作，直接传入密文和私钥解密操作，得到明文
+	plaintext, err := goEncrypt.RsaDecrypt(crypttext, []byte(private_Key))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("明文：", string(plaintext))
+
+}
+
+func Test_Encode_Base64(t *testing.T) {
+	plaintext := []byte("123456")
+	pkey := []byte(public_Key)
+	crypttext, err := goEncrypt.RsaEncrypt(plaintext, pkey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("密文:", base64.StdEncoding.EncodeToString(crypttext))
+}
+
+func Test_Decode_Base64_RawURLEncoding(t *testing.T) {
+	str := "sHiFX5raoRYeUgkgACaWQHWUymtDlgBVOMeRsgSCoSH3rnoGSHNSsOhE9RPqOLgXmrkC3jl/yUW/yhescXfeqgW6J9QqTV M86cU hieh2hky380amgDbS1AfjRvtrqL82E erG4Qo0Om2kzg7HyKToZRk8ov2kvl214HLp9tcCv1uZlOIhmOc5YxUXLZukIy5g7Iahr6AU1V8vChmm9Czne62O3Bzh6nakDiFdeGuw0tBVombRNAKsLBxS4WiZFkuNzFjMTfKsGF9v0BDKXMuk0DcsZHMI Oinrno2C4n0YvkhMKuM96KELsN EczuBOKTbPuKprjBepkGtMbkxxg=="
+	crypttext, _ := base64.RawURLEncoding.DecodeString(str)
+
 	// 解密操作，直接传入密文和私钥解密操作，得到明文
 	plaintext, err := goEncrypt.RsaDecrypt(crypttext, []byte(private_Key))
 	if err != nil {

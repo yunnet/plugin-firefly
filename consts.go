@@ -9,19 +9,8 @@ const (
 	C_DISK_SPACE_THRESHOLD = 80.00
 	YYYY_MM_DD_HH_MM_SS    = "2006-01-02 15:04:05"
 
-	ErrorWithGetMethodsSupported = "Sorry, only GET methods are supported."
-
-	//ApiFireflyHi            = "/api/firefly/hi"
-	//ApiFireflyLogin         = "/api/firefly/login"
-	//ApiFireflyRefresh       = "/api/firefly/refresh"
-	//ApiFireflyChangePwd     = "/api/firefly/changepwd"
-	//ApiFireflyReboot        = "/api/firefly/reboot"
-	//ApiFireflyConfig        = "/api/firefly/config"
-	//ApiFireflyConfigEdit    = "/api/firefly/config/edit"
-	//ApiFireflyConfigTcp     = "/api/firefly/config/tcp"
-	//ApiFireflyConfigTcpEdit = "/api/firefly/config/tcp/edit"
-	//ApiFireflyConfigPing    = "/api/firefly/config/ping"
-	//ApiFireflyConfigStorage = "/api/firefly/storage"
+	ErrorWithGetMethodsSupported  = "Sorry, only GET methods are supported."
+	ErrorWithPostMethodsSupported = "Sorry, only POST methods are supported."
 
 	//C_NETWORK_FILE = "/interfaces"
 )

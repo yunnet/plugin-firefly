@@ -22,7 +22,7 @@ var (
 func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -55,7 +55,7 @@ func pingConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -87,7 +87,7 @@ func getConfigHandler(w http.ResponseWriter, r *http.Request) {
 func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "POST" {
-		res := result.Err.WithMsg("Sorry, only POST methods are supported.")
+		res := result.Err.WithMsg(ErrorWithPostMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -165,7 +165,7 @@ func editConfigHandler(w http.ResponseWriter, r *http.Request) {
 func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -193,7 +193,7 @@ func getConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "POST" {
-		res := result.Err.WithMsg("Sorry, only POST methods are supported.")
+		res := result.Err.WithMsg(ErrorWithPostMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}
@@ -235,7 +235,7 @@ func editConfigTcpHandler(w http.ResponseWriter, r *http.Request) {
 func storageHandler(w http.ResponseWriter, r *http.Request) {
 	CORS(w, r)
 	if r.Method != "GET" {
-		res := result.Err.WithMsg("Sorry, only GET methods are supported.")
+		res := result.Err.WithMsg(ErrorWithGetMethodsSupported)
 		w.Write(res.Raw())
 		return
 	}

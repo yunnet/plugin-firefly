@@ -6,14 +6,14 @@ firefly plugin for monibuca
 
 * 接口：/api/firefly/login
 
-* 请求方式：GET
+* 请求方式：POST
 
 * 请求参数：
 
 | 字段  | 类型   | 说明   |
 |------|------: | :-----|
 | username | string |   |
-| password | string |   |
+| password | string | 使用Rsa公共钥匙加密密码得到字符串：如：upV8WJbPE9YiFKtTLuc7oJWwR62UBVvJQmHdHzqtlonanuqnaHegXYCQdoSHaJcvb2XPcPOYyGa3D4nkpdaD0FBAU3xZB1NONqFSXu0ggo4Jg4ciTKiig8NbQ27B61Dwd7JKQePjyvj6LelB691pxgQ75sX8JxKORpQmzgf9CYUCHbNqO1d9VLgLgIgrvCrdzabetyLFg/S1ytIqIiGjCYjZbYHsyuWV29Cgyd+7kzRawWJG8jdUVSca3MabD1T8iYR1PSitguIRJ5FZYRzTSPzfb7HOIcN6NDInxJvuCcqUah83ESzR8YRxv2FTIbazvvfh/kjg0edhoymsR1lnXg==  |
 
 * 返回结果：
   {"code":200,"msg":"ok","data":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MzI2Mzk5ODYsImlzcyI6ImFkbWluIn0.lGyxvdi027cl9J512-jdw1fr33ujGfjeN8-OvNN_7nA"}
