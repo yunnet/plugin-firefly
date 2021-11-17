@@ -90,7 +90,7 @@ func run() {
 
 	initBoxConfig()
 	if config.Model == "ZL" {
-		ZLMediaKit()
+		go ZLMediaKit()
 	}
 
 	//hi

@@ -61,7 +61,7 @@ func doTask() {
 func freeDisk() {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("internal error: %v", err)
+			log.Printf("remove file internal error: %v", err)
 		}
 	}()
 	var files []string

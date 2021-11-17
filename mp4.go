@@ -26,6 +26,7 @@ func GetMP4Duration(reader io.ReaderAt) uint32 {
 		}
 		boxHeader = getHeaderBoxInfo(info)
 		fourccType := getFourccType(boxHeader)
+
 		if fourccType == "moov" {
 			break
 		}
@@ -34,10 +35,13 @@ func GetMP4Duration(reader io.ReaderAt) uint32 {
 			if boxHeader.Size == 1 {
 				offset += int64(boxHeader.Size64)
 				continue
+			} else if boxHeader.Size == 0 {
+				offset += 8
 			}
 		}
 		offset += int64(boxHeader.Size)
 	}
+
 	// 获取moov结构开头一部分
 	moovStartBytes := make([]byte, 0x100)
 	_, err := reader.ReadAt(moovStartBytes, offset)
