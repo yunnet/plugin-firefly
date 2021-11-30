@@ -54,16 +54,21 @@ func doTask() {
 		if percent < C_DISK_SPACE_THRESHOLD {
 			break
 		}
-		freeDisk()
+
+		if err := freeDisk(); err != nil {
+			log.Printf("freeDisk internal error: %v", err)
+			break
+		}
 	}
 }
 
-func freeDisk() {
+func freeDisk() error {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Printf("remove file internal error: %v", err)
 		}
 	}()
+
 	var files []string
 	walkFunc := func(filePaths string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -79,13 +84,22 @@ func freeDisk() {
 		}
 		return nil
 	}
-	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
-		delFile := files[0]
-		log.Println("remove file: " + delFile)
 
-		if err := os.Remove(delFile); err != nil {
-			log.Printf("remove file error: %s", err)
+	if err := filepath.Walk(config.SavePath, walkFunc); err == nil {
+		if len(files) > 0 {
+			delFile := files[0]
+			log.Println("remove file: " + delFile)
+
+			if err := os.Remove(delFile); err != nil {
+				log.Printf("remove file error: %s", err)
+				return err
+			}
+			return nil
 		}
+
+		return errors.New("the file array is empty")
+	} else {
+		return err
 	}
 }
 
